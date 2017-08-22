@@ -10,11 +10,13 @@
 ### コンパイル&実行
 原子モデルの識別に用いるヘッダファイル `./src/md_fdps_enum_model.hpp` は  
 `./model/` フォルダにある `*.mol2` ファイルを用いて  
-
-`$ ./script/convert_model_indicator.py`
-
+```
+$ ./script/convert_model_indicator.py
+```
 で生成する．その後に  
-`$ make`  
+```
+$ make
+```
 で実行ファイル `md_fdps.x` が生成される．
 
 計算条件は  
@@ -23,6 +25,12 @@
 ./condition_sequence.imp
 ```
 にそれぞれ記入する．
+
+準備が整ったら
+```
+$ mpirun -n [n_proc] ./md_fdps.x
+```
+で実行する． [n_proc] は任意のMPIプロセス数で，ParticleMeshの仕様により2以上である必要がある
 
 ### 実装目標と現状
   - モデル・設定の読み込み
@@ -47,9 +55,9 @@
 ### VMDによる動画作成
 `md_fdps.x` を実行し，`./pdb` ， `./posdata` が生成されたものとする．  
 ここで，  
-
-`$ ./script/VMDmovie_convert.py`  
-
+```
+$ ./script/VMDmovie_convert.py` 
+```
 を実行し，生成された  
 ```
 ./vmd_movie.pdb
