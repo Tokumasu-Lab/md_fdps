@@ -4,7 +4,8 @@
 大規模N体シミュレーションフレームワーク[FDPS](https://github.com/FDPS/FDPS)を利用した汎用分子動力学シミュレーションコード開発ベース……の予定
 
 ###C++11を利用
-開発環境の構築手順については `./development_environment.md` を参照
+開発環境の構築手順については `./development_environment.md` を参照  
+`makefile` のインクルードパス，ライブラリのリンク指定は上記で構築した環境への静的リンクを用いているので適宜変更する．
 
 ###コンパイル&実行
 原子モデルの識別に用いるヘッダファイル `./src/md_fdps_enum_model.hpp` は  
@@ -51,3 +52,8 @@
 `./vmd_movie.pdb`  
 `./vmd_movie.crd`  
 を[VMD](http://www.ks.uiuc.edu/Research/vmd/)で読み込み可視化する．
+
+
+###Contact
+contact.md.fdps -@- gmail.com  
+( "-@-" を "@" に置き換えてください)
