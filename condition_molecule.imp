@@ -1,0 +1,19 @@
+//*********************************************************************
+//     This file is input condition for 'md_fdps.x'
+//      define molecular & box settings.
+//*********************************************************************
+
+// model_name, n_molecule
+@<CONDITION>MOLECULE
+AA_wat     0
+AA_Ar      860
+
+// initial box size
+// x, y, z [angstrom]
+@<CONDITION>BOX
+328.4  328.4  328.4
+
+// exclude radius of atom at initialize
+// radius[angstrom], try_limit[times]
+@<CONDITION>EX_RADIUS
+3.5   32768   // 32768

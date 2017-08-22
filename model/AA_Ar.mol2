@@ -1,0 +1,13 @@
+# Mol2 file generated manually
+@<TRIPOS>MOLECULE     // molecular type name
+structure             // convert source file name?
+1 0 0 0 0             // n_atom, n_bond, (ignored), (ignored), (ignored)
+SMALL
+USER_CHARGES
+
+// (local_atom_id), atom_name, x, y, z, (ignored), (ignored), (ignored), charge
+@<TRIPOS>ATOM
+1 Ar  0    0    0    Ar 0 **** 0
+
+// (local_bond_id), i_atom, j_atom, (ignored)
+@<TRIPOS>BOND

@@ -1,0 +1,64 @@
+//*********************************************************************
+//     This file is input condition for 'md_fdps.x'
+//      define sequence settings (time step and system condition).
+//*********************************************************************
+
+// (tag), value
+@<CONDITION>TIMESTEP
+t_start        0
+t_end       1000   // 300000
+dt           1.0      [fs]
+
+
+// (tag) tree setting
+@<CONDITION>TREE
+n_leaf_limit    8
+coef_ema        0.3
+theta           0.5
+n_group_limit   64
+cycle_dinfo     1 // 50
+
+
+// (tag) cut_off_length[angstrom]
+@<CONDITION>CUT_OFF
+LJ     12.0     // search radius
+
+
+// setting for external system controller
+@<CONDITION>EXT_SYS
+n_chain   3
+n_rep     3
+n_nys     3
+NVT_freq  1.e13
+NPT_freq  1.e11
+
+// (tag) mode  temperature[K] pressure[MPa]  for default setting
+default   NVE  300.0  0.0
+
+
+// mode  step  temperature[K] pressure[MPa]
+@<CONDITION>EXT_SYS_SEQUENCE
+//--- test sequeence
+NVE    1000  300.0   0.0
+NVT   10000  400.0   0.0
+NVT   10000  600.0   0.0
+NVT   10000  400.0   0.0
+NVE    1000  400.0   0.0
+
+
+//--- interval of recording data
+@<CONDITION>RECORD
+pos_interval  100
+pos_start       0
+
+eng_interval   50
+eng_start       0
+
+prop_interval  50
+prop_start      0
+
+pdb_interval  1000
+pdb_start        0
+
+resume_interval  1000
+resume_start        0

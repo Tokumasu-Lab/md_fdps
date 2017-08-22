@@ -1,0 +1,14 @@
+// (local_id), mass[g/mol], vdw_d[kcal/mol], vdw_r[angstrom]
+@<PARA>ELEMENT 1
+  1  Ar  39.948   0.240   3.81637
+
+// (bond_id), i, j, form, r0[angstrom], d[kcal/mol], a[angstrom]
+@<PARA>BOND 0
+
+// (angle_id), j, i, k, form, theta0[rad], k[kcal/mol·rad^2]
+//             j-i-k shape
+@<PARA>ANGLE 0
+
+// (torsion_id), i, j, k, l, form, theta0[rad], v, n
+//               i-j-k-l shape
+@<PARA>TORSION 0
