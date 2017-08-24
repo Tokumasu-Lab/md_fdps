@@ -51,3 +51,4 @@ md_fdps.d
 md_fdps.x
 pdb/vmd0000000000.pdb
 pdb/vmd0000001000.pdb
+src/md_fdps_enum_model.hpp

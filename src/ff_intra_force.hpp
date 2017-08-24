@@ -137,6 +137,9 @@ void calcForceIntra(Ttree &tree,
     for(PS::S64 i=0; i<n_local; ++i){
         ID_table.clear();
 
+        //--- skip no-bonded atoms
+        if( MODEL::intra_pair_manager.bond_list.at( psys[i].getAtomID() ).size() == 0 ) continue;
+
         //--- make ID table for psys[i] neigbor
         Tepj*   ep_j;
         PS::S64 n_neighbor = tree.getNeighborListOneParticle(psys[i], ep_j);
