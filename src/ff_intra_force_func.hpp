@@ -36,10 +36,10 @@ void calcBondForce_harmonic_IJ(const PS::F64vec &pos_i,
 
     //--- potential
     PS::F64 r_diff = r - coef.r0;
-    force_i.addPotBond( 0.5*0.5*coef.a*r_diff*r_diff );
+    force_i.addPotBond( 0.5*0.5*coef.k*r_diff*r_diff );
 
     //--- force
-    PS::F64vec f_tmp = ( -coef.a*r_diff/r )*r_ij;
+    PS::F64vec f_tmp = ( -coef.k*r_diff/r )*r_ij;
     force_i.addForceIntra( f_tmp );
 
     //--- virial
@@ -69,10 +69,10 @@ void calcBondForce_anharmonic_IJ(const PS::F64vec  &pos_i,
     constexpr PS::F64 factor = 7.0/12.0;  // counteract double count
     PS::F64 ar  = coef.a*(r - coef.r0);
     PS::F64 ar2 = ar*ar;
-    force_i.addPotBond(    0.5*coef.d*(  1.0 - ar + factor*ar2)*ar2 );
+    force_i.addPotBond(    0.5*coef.k*(  1.0 - ar + factor*ar2)*ar2 );
 
     //--- force
-    PS::F64    ebp   = -coef.a*coef.d*( (2.0 - 3.0*ar) + 4.0*factor*ar2 )*ar/r;
+    PS::F64    ebp   = -coef.a*coef.k*( (2.0 - 3.0*ar) + 4.0*factor*ar2 )*ar/r;
     PS::F64vec f_tmp = ebp*r_ij;
     force_i.addForceIntra( f_tmp );
 

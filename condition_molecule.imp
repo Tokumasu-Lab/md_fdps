@@ -1,19 +1,30 @@
-//*********************************************************************
+//=====================================================================
 //     This file is input condition for 'md_fdps.x'
 //      define molecular & box settings.
-//*********************************************************************
+//=====================================================================
 
-// model_name, n_molecule
+//=====================================================================
+//  molecular settings:
+//      model_name, n_molecule
+//          model_name [-]       string, must be same to the file name in "./model/"
+//          n_molecule [integer]
+//=====================================================================
 @<CONDITION>MOLECULE
-AA_wat     0
-AA_Ar      860
+AA_wat_aSPC_Fw      0
+AA_wat_SPC_Fw      48
+AA_Ar               0
 
-// initial box size
-// x, y, z [angstrom]
+//=====================================================================
+//  initial box size:
+//      x, y, z [angstrom]   must be  x=y=z (restricted by PS::ParticleMesh)
+//=====================================================================
 @<CONDITION>BOX
 328.4  328.4  328.4
 
-// exclude radius of atom at initialize
-// radius[angstrom], try_limit[times]
+//=====================================================================
+//  setting of initializer:
+//      radius    [angstrom]  lower limit distance between intermolecular atoms.
+//      try_limit [intger]    max number of trying to insert molecule.
+//=====================================================================
 @<CONDITION>EX_RADIUS
 3.5   32768   // 32768

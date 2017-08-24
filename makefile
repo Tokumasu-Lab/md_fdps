@@ -110,4 +110,9 @@ test_force_angle: ./unit_test/force_angle.cpp
 clean:
 	rm -rf *.x $(DEPS) $(OBJS)
 
+.PHONY: clean_all
+clean_all:
+	make clean
+	rm -rf ./posdata ./pdb ./resume *.dat *.out ./src/md_fdps_enum_model.hpp
+
 -include $(DEPS)

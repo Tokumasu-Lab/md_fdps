@@ -289,17 +289,19 @@ namespace MODEL {
 
                 case MOL2_LOAD_MODE::bond:
                     //--- check format: 7 parameters, str_list[0] must be integer.
-                    if( str_list.size() < 7) continue;
+                    if( str_list.size() < 6) continue;
                     if( !STR_TOOL::isInteger(str_list[0]) ) continue;
 
                     coef_bond.r0 = std::stof(str_list[4]);
-                    coef_bond.d  = std::stof(str_list[5]);
-                    coef_bond.a  = std::stof(str_list[6]);
 
                     if(       str_list[3] == "anharmonic"){
+                        assert(str_list.size() >= 7);
                         coef_bond.form = IntraFuncForm::anharmonic;
+                        coef_bond.k    = std::stof(str_list[5]);
+                        coef_bond.a    = std::stof(str_list[6]);
                     } else if(str_list[3] == "harmonic"){
                         coef_bond.form = IntraFuncForm::harmonic;
+                        coef_bond.k    = std::stof(str_list[5]);
                     } else {
                         std::cerr << "  file: " << file_name << std::endl;
                         throw std::invalid_argument("undefined form of bond potential.");
@@ -324,7 +326,7 @@ namespace MODEL {
                                                 ENUM::which_AtomName(str_list[1]) );
                     bond_table[key_bond] = coef_bond;
 
-                    //--- enclement
+                    //--- inclement count
                     bond_count++;
                 break;
 
@@ -351,6 +353,15 @@ namespace MODEL {
                     }
 
                     angle_table[key_angle] = coef_angle;
+
+                    //--- add reverse shape
+                    key_angle = std::make_tuple( ENUM::which_MolName(model_name),
+                                                 ENUM::which_AtomName(str_list[3]),
+                                                 ENUM::which_AtomName(str_list[2]),
+                                                 ENUM::which_AtomName(str_list[1]) );
+                    angle_table[key_angle] = coef_angle;
+
+                    //--- inclement count
                     angle_count++;
                 break;
 
@@ -359,10 +370,10 @@ namespace MODEL {
                     if( str_list.size() < 9) continue;
                     if( !STR_TOOL::isInteger(str_list[0]) ) continue;
 
+                    coef_torsion.form   = ENUM::which_IntraFuncForm(str_list[5]);
                     coef_torsion.theta0 = std::stof(str_list[6])*Unit::pi/180.0;   // [degree] -> [rad]
                     coef_torsion.k      = std::stof(str_list[7]);
                     coef_torsion.n_min  = std::stof(str_list[8]);
-                    coef_torsion.form   = ENUM::which_IntraFuncForm(str_list[5]);
 
                     key_torsion = std::make_tuple( ENUM::which_MolName(model_name),
                                                    ENUM::which_AtomName(str_list[1]),
@@ -380,6 +391,16 @@ namespace MODEL {
                     }
 
                     torsion_table[key_torsion] = coef_torsion;
+
+                    //--- add reverse shape
+                    key_torsion = std::make_tuple( ENUM::which_MolName(model_name),
+                                                   ENUM::which_AtomName(str_list[4]),
+                                                   ENUM::which_AtomName(str_list[3]),
+                                                   ENUM::which_AtomName(str_list[2]),
+                                                   ENUM::which_AtomName(str_list[1]) );
+                    torsion_table[key_torsion] = coef_torsion;
+                    
+                    //--- inclement count
                     torsion_count++;
                 break;
 

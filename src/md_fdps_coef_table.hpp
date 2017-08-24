@@ -105,15 +105,15 @@ namespace MODEL {
     struct CoefBond {
       public:
         IntraFuncForm form;
-        PS::F32 a, d, r0;
+        PS::F32 r0, k, a;
 
         inline std::string to_string(const size_t &shift = 0) const {
             std::ostringstream oss;
 
             oss << std::setw(shift + 7) << "form : "                         << this->form << "\n";
-            oss << std::setw(shift + 7) << "d    : " << std::setprecision(8) << this->d    << "\n";
-            oss << std::setw(shift + 7) << "a    : " << std::setprecision(8) << this->a    << "\n";
             oss << std::setw(shift + 7) << "r0   : " << std::setprecision(8) << this->r0   << "\n";
+            oss << std::setw(shift + 7) << "k    : " << std::setprecision(8) << this->k    << "\n";
+            oss << std::setw(shift + 7) << "a    : " << std::setprecision(8) << this->a    << "\n";
 
             return oss.str();
         }

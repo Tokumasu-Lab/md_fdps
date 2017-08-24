@@ -1,0 +1,53 @@
+//===============
+//  SPC/Fw model
+//===============
+
+//=======================================================================================
+//  definition of parameters on each atoms.
+// (local_id), name, mass, vdw_d, vdw_r
+//      name  [-]              string, must be same to "atom_name" in ***.mol2 file.
+//      mass  [atomic weight]
+//      vdw_d [kcal/mol]
+//      vdw_r [angstrom]
+//        separated by space.
+//=======================================================================================
+@<PARA>ELEMENT 2
+  1  Ow  15.9994   0.1554253   3.165492
+  2  Hw  1.00794   0.0         3.0
+
+//=======================================================================================
+//  definition of bond potential.
+// (bond_id), i, j, form, r0, k, a
+//      i, j [integer]    have to use "local_id" in this file and ***.mol2 file.
+//      form [-]          must be "harmonic" or "anharmonic".
+//      r0   [angstrom]   equivalent length
+//      k    [kcal/mol]
+//      a    [/angstrom]  used in "anharmonic" form.
+//        separated by space.
+//=======================================================================================
+@<PARA>BOND 1
+  1  Ow  Hw  harmonic   1.012  1059.162  0.0
+
+//=======================================================================================
+//  definition of angle potential.
+// (angle_id), j, i, k, form, theta0, k
+//      j, i, k [integer]        j-i-k shape, have to use "local_id" in this file and ***.mol2 file.
+//      form    [-]              must be "harmonic". other form is not defined.
+//      theta0  [degree]         equivalent angle
+//      k       [kcal/mol·rad^2]
+//        separated by space.
+//=======================================================================================
+@<PARA>ANGLE 1
+  1  Hw  Ow  Hw  harmonic  113.24  75.9
+
+//=======================================================================================
+//  definition of torsion potential.
+// (torsion_id), i, j, k, l, form, theta0, v, n
+//      i, j, k, l [integer]   i-j-k-l shape, have to use "local_id" in this file and ***.mol2 file.
+//      form       [-]         must be "none" or "cos".
+//      theta0     [degree]    equivalent angle
+//      v          [kcal/mol]
+//      n          [integer]   number of local minimum point
+//        separated by space.
+//=======================================================================================
+@<PARA>TORSION 0
