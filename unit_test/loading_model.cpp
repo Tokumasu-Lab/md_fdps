@@ -1,5 +1,5 @@
 //***************************************************************************************
-//  This is unit test of loading model parameter function.
+//  This is unit test of loading model parameter.
 //***************************************************************************************
 
 #include <tuple>

@@ -52,3 +52,15 @@ md_fdps.x
 pdb/vmd0000000000.pdb
 pdb/vmd0000001000.pdb
 src/md_fdps_enum_model.hpp
+test_blz_dist.x
+test_comm.x
+test_condition.x
+test_force_LJ.x
+test_force_coulomb.x
+test_intra_pair.x
+test_init.x
+test_model.x
+test_force_angle.x
+test_vec.x
+test_force_bond.x
+blz_dist_result.txt

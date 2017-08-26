@@ -1,10 +1,19 @@
 # md_fdps
-***
+
 
 大規模N体シミュレーションフレームワーク[FDPS](https://github.com/FDPS/FDPS)を利用した汎用分子動力学シミュレーションコード開発ベース……の予定
 
-### C++11を利用
-開発環境の構築手順については `./development_environment.md` を参照  
+### 動作環境
+**C++11規格を使用**
+
+開発に使用している環境は
+  - GCC 6.3.0
+  - OpenMPI 2.1.1
+  - FFTw 3.3.6  
+
+である．
+
+開発環境の構築手順については `./ENV-NOTE.md` を参照  
 `makefile` のインクルードパス，ライブラリのリンク指定は上記で構築した環境への静的リンクを用いているので適宜変更する．
 
 ### コンパイル&実行
@@ -56,7 +65,7 @@ $ mpirun -n [n_proc] ./md_fdps.x
 `md_fdps.x` を実行し，`./pdb` ， `./posdata` が生成されたものとする．  
 ここで，  
 ```
-$ ./script/VMDmovie_convert.py` 
+$ ./script/VMDmovie_convert.py
 ```
 を実行し，生成された  
 ```
@@ -67,5 +76,7 @@ $ ./script/VMDmovie_convert.py`
 
 
 ### Contact
-contact.md.fdps -@- gmail.com  
+東北大学　流体科学研究所  
+徳増研究室 md_fdps 開発チーム  
+contact.md-fdps -@- nanoint.ifs.tohoku.ac.jp  
 ( "-@-" を "@" に置き換えてください)

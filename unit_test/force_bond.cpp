@@ -1,5 +1,5 @@
 //***************************************************************************************
-//  This program is unit test of PS::F64vec class functions.
+//  This program is unit test of bond interaction.
 //***************************************************************************************
 
 #include <particle_simulator.hpp>
@@ -51,9 +51,9 @@ void test_init(Tpsys &psys){
         psys[i].clear();
     }
     psys[0].setAtomType( AtomName::Ow );
-    psys[0].setMolType(  MolName::AA_wat );
+    psys[0].setMolType(  MolName::AA_wat_aSPC_Fw );
     psys[1].setAtomType( AtomName::Hw );
-    psys[1].setMolType(  MolName::AA_wat );
+    psys[1].setMolType(  MolName::AA_wat_aSPC_Fw );
 
     MODEL::intra_pair_manager.addBond(0, 1);
 

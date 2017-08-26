@@ -19,7 +19,7 @@ FDPS ver3.0 向け
 - https://github.com/FDPS/FDPS
 - http://www.jmlab.jp/?p=530
 
-#### 開発元の動作確認環境
+#### FDPS開発チームの動作確認環境 (FDPSの仕様書参照)
 C++ コンパイラ (gcc 4.4.5以降，あるいはKコンパイラ 1.2.0)  
 MPI version 1.3環境　(OpenMPI 1.8.1で動作確認)  
 FFTw 3.3以降  
@@ -33,7 +33,7 @@ MPI環境:
 
 GCCが古すぎるのもあるが，C++11以降の規格が使用できると便利なこともあり，開発環境として以下の環境をユーザのローカルフォルダにインストールした．
 - gcc 6.3.0
-- OpenMPI 2.0.1
+- OpenMPI 2.1.1
 - FFTW 3.3.6
 
 
@@ -50,10 +50,10 @@ $ pwd
 $ ls
 fftw-3.3.6-pl1.tar.gz
 gcc-6.3.0.tar.bz2
-openmpi-2.0.1.tar.bz2
+openmpi-2.1.1.tar.bz2
 
 $ tar -xvf gcc-6.3.0.tar.bz2
-$ tar -xvf openmpi-2.0.1.tar.bz2
+$ tar -xvf openmpi-2.1.1.tar.bz2
 $ tar -zxvf fftw-3.3.6-pl1.tar.gz
 ```
 
@@ -114,14 +114,18 @@ GCC のコンパイルに必要な依存関係ファイルをダウンロード�
 $ cd ../gcc-6.3.0/
 $ ./contrib/download_prerequisites
 ```
-makeファイルを作成する  
+makeファイルを作成する．  
+下記は見やすいように改行しているが， `./gcc-6.3.0/configure` 以降のすべてのオプションを改行せずに続けて入力すること．  
 (ここでは `$HOME/local/gcc-6.3.0` にインストールする設定を与えている)
 ```
 $ cd ../build
-$ ../gcc-6.3.0configure --prefix=$HOME/local/gcc-6.3.0 --with-local-prefix=$HOME/local/libgcc63 --enable-checking=release --disable-multilib --enable-languages=c,c++,fortran
+$ ../gcc-6.3.0/configure --prefix=$HOME/local/gcc-6.3.0  
+--with-local-prefix=$HOME/local/libgcc63  
+--enable-checking=release --disable-multilib  
+--enable-languages=c,c++,fortran  
 ```
 
-エラー無くmakefileが生成されたら，コンパイルおよびインストールを行う．
+無事にmakefileが生成されたら，コンパイルおよびインストールを行う．
 ```
 $ make
 $ make install
@@ -166,10 +170,11 @@ $ echo $LD_RUN_PATH
 ```
 $ rm * -r
 ```
-makeファイルの作成
-(ここでは `$HOME/local/openmpi-2.0.1` にインストールする)
+makeファイルの作成  
+Fortranを使用しない場合は `F77=***` と `FC=***` は書かない．  
+(ここでは `$HOME/local/openmpi-2.1.1` にインストールする)
 ```
-$ ../openmpi-2.0.1/configure --prefix=$HOME/local/openmpi-2.0.1 --enable-mpi-cxx CC=gcc CXX=g++ F77=gfortran FC=gfortran
+$ ../openmpi-2.1.1/configure --prefix=$HOME/local/openmpi-2.1.1 --enable-mpi-cxx CC=gcc CXX=g++ F77=gfortran FC=gfortran
 ```
 コンパイルおよびインストール
 ```
@@ -180,7 +185,7 @@ $ make install
 GCCと同様に， `.bashrc` に下記のように追記し，パスを登録する．  
 あるいは[おまけ2](#複数のgccバージョンの切り替え)のスクリプトを利用する．
 ```bash
-target=$HOME"/local/openmpi-2.0.1"      # prefixで指定したOpenMPIのフォルダ
+target=$HOME"/local/openmpi-2.1.1"      # prefixで指定したOpenMPIのフォルダ
 $ export PATH=${target}/bin:$PATH
 $ export LD_LIBRARY_PATH=${target}/lib:$LD_LIBRARY_PATH
 ```
@@ -199,6 +204,7 @@ $ ompi_info
 後ろのほうの各対応APIのバージョンの右の ", Component v (version)" の数字が
 インストールしたものとあっているか確認する．
 
+
 <a id="FFTwのコンパイルとインストール"></a>
 <a href="#FFTwのコンパイルとインストール"></a>
 ## FFTw のコンパイルとインストール
@@ -209,13 +215,15 @@ $ rm * -r
 
 makeファイルの作成  
 参考：http://www.fftw.org/doc/Installation-on-Unix.html  
+Fortranを使用しない場合は `--with-g77-wrappers` は書かない．  
+GCCの `configure` と同様すべてのオプションを改行せずに続けて入力すること．  
 (ここでは `$HOME/local/fftw-3.3.6` にインストールする)  
 ```
-$ ../fftw-3.3.6/configure --prefix=$HOME/local/fftw-3.3.6  \
---enable-mpi --enable-threads --enable-openmp  \
---enable-static --enable-shared  \
---enable-sse2 --enable-avx --with-g77-wrappers  \
---enable-float --enable-sse
+$ ../fftw-3.3.6/configure --prefix=$HOME/local/fftw-3.3.6  
+--enable-mpi --enable-threads --enable-openmp  
+--enable-static --enable-shared  
+--enable-sse2 --enable-avx --with-g77-wrappers  
+--enable-float --enable-sse  
 ```
 コンパイルおよびインストール
 ```
@@ -266,7 +274,7 @@ Makefileの編集(configureは付属していない)
 $ cd $HOME/local/FDPS-3.0/src/particle_mesh
 $ emacs Makefile
 ```
-このMakefileのコンパイルオプションとMPIライブラリの参照先を編集する．
+このMakefileのコンパイルオプションとFFTwライブラリの参照先を編集する．
 
 まずデバッグ用の派生版を作る
 ```bash
@@ -311,7 +319,7 @@ $ make
 #use_gcc="default"
 use_gcc="gcc-6.3.0"
 
-use_ompi="openmpi-2.0.1"
+use_ompi="openmpi-2.1.1"
 use_fftw="fftw-3.3.6"
 
 #--- user install path

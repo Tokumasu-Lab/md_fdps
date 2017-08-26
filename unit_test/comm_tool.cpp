@@ -1,6 +1,8 @@
-//***************************************************************************************
-//  This is unit test of "tple_array.hpp".
-//***************************************************************************************
+//=======================================================================================
+//  This is unit test of additional wrapper of PS::Comm::broadcast().
+//     provides interface for some STL container.
+//     module location: ./md_ext_include/comm_tool.hpp
+//=======================================================================================
 
 #include <iostream>
 #include <vector>

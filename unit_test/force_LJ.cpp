@@ -1,5 +1,5 @@
 //***************************************************************************************
-//  This program is unit test of PS::F64vec class functions.
+//  This program is unit test of LJ interaction.
 //***************************************************************************************
 
 #include <particle_simulator.hpp>

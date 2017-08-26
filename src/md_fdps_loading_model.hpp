@@ -302,6 +302,7 @@ namespace MODEL {
                     } else if(str_list[3] == "harmonic"){
                         coef_bond.form = IntraFuncForm::harmonic;
                         coef_bond.k    = std::stof(str_list[5]);
+                        coef_bond.a    = 0.0;
                     } else {
                         std::cerr << "  file: " << file_name << std::endl;
                         throw std::invalid_argument("undefined form of bond potential.");
@@ -399,7 +400,7 @@ namespace MODEL {
                                                    ENUM::which_AtomName(str_list[2]),
                                                    ENUM::which_AtomName(str_list[1]) );
                     torsion_table[key_torsion] = coef_torsion;
-                    
+
                     //--- inclement count
                     torsion_count++;
                 break;

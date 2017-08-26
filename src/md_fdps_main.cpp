@@ -47,6 +47,9 @@ public:
     void setRcut(){
         Atom_EP::setRcut_LJ(      Normalize::normCutOff( System::get_cutoff_LJ() ) );
         Atom_EP::setRcut_coulomb( Normalize::normCutOff_PM() );
+
+        //--- check cut off length
+        assert(Atom_EP::getRcut_LJ() < 0.5);
     }
 
     template <class Tpsys, class Tdinfo>

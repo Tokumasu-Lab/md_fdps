@@ -1,6 +1,7 @@
-//===============
+//=======================================================================================
 //  aSPC/Fw model
-//===============
+//    ref: J. Phys. Chem. B, 2012, 116(1), pp343-352
+//=======================================================================================
 
 //=======================================================================================
 //  definition of parameters on each atoms.
@@ -21,7 +22,7 @@
 //      i, j [integer]    have to use "local_id" in this file and ***.mol2 file.
 //      form [-]          must be "harmonic" or "anharmonic".
 //      r0   [angstrom]   equivalent length
-//      k    [kcal/mol]
+//      k    [kcal/mol]   written as "D_OH" in article.
 //      a    [/angstrom]  used in "anharmonic" form.
 //        separated by space.
 //=======================================================================================

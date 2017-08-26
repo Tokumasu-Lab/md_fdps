@@ -10,6 +10,7 @@
 #PS_DIR = /home/NIa/NIa030/FDPS_3.0_20161228
 #------ for virtual box Ubuntu
 PS_DIR = $(HOME)/FDPS/FDPS_3.0_20161228
+#PS_DIR = $(HOME)/FDPS/FDPS_3.0_gcc54
 
 PS_PATH  = -I$(PS_DIR)/src/
 PS_PATH += -I$(PS_DIR)/src/particle_mesh/
@@ -18,6 +19,7 @@ LIB_PM   =   $(PS_DIR)/src/particle_mesh/libpm_debug.a
 
 #--- PATH for FFTw library
 FFTW_DIR      = $(HOME)/local/fftw-3.3.6
+#FFTW_DIR      = $(HOME)/local/fftw-3.3.6-ompi-2.1.1-gcc-5.4
 
 INCLUDE_FFTW  = -I$(FFTW_DIR)/include/
 LIB_FFTW      = -L$(FFTW_DIR)/lib/ -lfftw3f_mpi -lfftw3f
@@ -54,7 +56,7 @@ DEPS = $(SRC_CPP:%.cpp=%.d)
 #  main MD program
 #=======================
 $(PROGRAM): $(SRC_CPP)
-	$(CC) $(PS_PATH) $(CFLAGS) $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -MMD $(LIB_FFTW) $< $(LIB_PM) -o $@
+	$(CC) $(PS_PATH) $(CFLAGS) $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -MMD $< $(LIB_PM) $(LIB_FFTW) -o $@
 
 #=======================
 #  unit tests
@@ -77,7 +79,7 @@ test_intra_pair: ./unit_test/intra_pair_manager.cpp
 
 test_model: ./unit_test/loading_model.cpp
 	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -DTEST_MOL_INSTALL -o test_model.x
-	./test_model.x  AA_wat
+	./test_model.x  AA_wat_SPC_Fw
 
 test_condition: ./unit_test/loading_condition.cpp
 	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -o test_condition.x

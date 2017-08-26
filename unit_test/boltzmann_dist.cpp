@@ -1,5 +1,5 @@
 //***************************************************************************************
-//  This is unit test of loading model parameter function.
+//  This is unit test of boltzmann distributiton generator.
 //***************************************************************************************
 
 #include <fstream>
@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
               << "    $ gnuplot\n"
               << "    > plot '" << file_name << "' u 1:2 w p\n\n"
               << "  --- file discription ---\n"
-              << "    line 1: arg(x). x = [0.0, 1.0)\n"
-              << "    line 2: output. normalized boltzmann distlibution.\n"
-              << "    line 3: internal table. cumulative distlibution of boltzmann distlibution.\n" << std::flush;
+              << "    line 1: normarized boltzmann distlibution. default range: [0.0, 4.0)\n"
+              << "    line 2: histgram of boltzmann distlibution.\n"
+              << "    line 3: internal table. cumulation of boltzmann distlibution.\n" << std::flush;
 
     //PS::Finalize();
     return 0;
