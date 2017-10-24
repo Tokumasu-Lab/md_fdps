@@ -11,10 +11,9 @@
 #include <cassert>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
-#include "md_ext_normalize.hpp"
-
-#include "md_fdps_unit.hpp"
+#include "unit.hpp"
 
 
 namespace Observer {
@@ -38,6 +37,7 @@ namespace Observer {
         void print(const std::string &str){
             if(PS::Comm::getRank() != this->rank) return;
             this->ofs << str;
+            this->ofs.flush();   // flush write buffer at every call
         }
 
         std::string file_name() const { return this->name; }

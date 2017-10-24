@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
     constexpr size_t n         = 400000;
     constexpr size_t seed      = 54321;
-    std::string      file_name = "blz_dist_result.txt";
+    std::string      file_name = "blz_dist_result.dat";
 
     std::mt19937_64                  mt(seed);
     std::uniform_real_distribution<> dist(0.0, 1.0);   // [0.0, 1.0)

@@ -1,7 +1,5 @@
 //***************************************************************************************
-//  This program is the intramolecular force calculation for "md_fdps_main.cpp"
-//    This code is using the Framework for Developing Particle Simulator (FDPS).
-//    https://github.com/FDPS
+//  This is the intramolecular force calculation for "md_fdps_main.cpp"
 //***************************************************************************************
 #pragma once
 
@@ -10,6 +8,7 @@
 #include <stdexcept>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
 #include "ff_inter_force_func.hpp"
 
@@ -22,8 +21,8 @@ void calcBondForce_harmonic_IJ(const PS::F64vec &pos_i,
                                const Tcoef      &coef,
                                      Tforce     &force_i){
 
-    PS::F64vec r_ij = pos_i - pos_j;
-    PS::F64    r2   = r_ij*r_ij;
+    PS::F64vec R_ij = pos_i - pos_j;
+    PS::F64    r2   = R_ij*R_ij;
     PS::F64    r    = sqrt(r2);
 
     //--- assert
@@ -39,11 +38,11 @@ void calcBondForce_harmonic_IJ(const PS::F64vec &pos_i,
     force_i.addPotBond( 0.5*0.5*coef.k*r_diff*r_diff );
 
     //--- force
-    PS::F64vec f_tmp = ( -coef.k*r_diff/r )*r_ij;
-    force_i.addForceIntra( f_tmp );
+    PS::F64vec F_ij = ( -coef.k*r_diff/r )*R_ij;
+    force_i.addForceIntra( F_ij );
 
     //--- virial
-    force_i.addVirialIntra( calcVirialEPI(r_ij, f_tmp) );
+    force_i.addVirialIntra( calcVirialEPI(F_ij, R_ij) );
 }
 
 //------ anharmonic bond potential
@@ -53,8 +52,8 @@ void calcBondForce_anharmonic_IJ(const PS::F64vec  &pos_i,
                                  const Tcoef       &coef,
                                        Tforce      &force_i){
 
-    PS::F64vec r_ij = pos_i - pos_j;
-    PS::F64    r2   = r_ij*r_ij;
+    PS::F64vec R_ij = pos_i - pos_j;
+    PS::F64    r2   = R_ij*R_ij;
     PS::F64    r    = sqrt(r2);
 
     //--- assert
@@ -73,11 +72,11 @@ void calcBondForce_anharmonic_IJ(const PS::F64vec  &pos_i,
 
     //--- force
     PS::F64    ebp   = -coef.a*coef.k*( (2.0 - 3.0*ar) + 4.0*factor*ar2 )*ar/r;
-    PS::F64vec f_tmp = ebp*r_ij;
-    force_i.addForceIntra( f_tmp );
+    PS::F64vec F_ij = ebp*R_ij;
+    force_i.addForceIntra( F_ij );
 
     //--- virial
-    force_i.addVirialIntra( calcVirialEPI(r_ij, f_tmp) );
+    force_i.addVirialIntra( calcVirialEPI(F_ij, R_ij) );
 }
 
 //------ harminic angle potential  (i-j-k form: "j" must be center)
@@ -92,13 +91,13 @@ void calcAngleForce_harmonic_IJK(const PS::F64vec &pos_i,
                                  const Tcoef      &coef,
                                        Tforce     &force_tgt){
 
-    PS::F64vec r_vec_A = pos_i - pos_j;
-    PS::F64vec r_vec_B = pos_k - pos_j;
+    PS::F64vec R_ij = pos_i - pos_j;
+    PS::F64vec R_kj = pos_k - pos_j;
 
-    PS::F64 r_a = std::sqrt(r_vec_A*r_vec_A);
-    PS::F64 r_b = std::sqrt(r_vec_B*r_vec_B);
+    PS::F64 r_a = VEC_EXT::norm(R_ij);
+    PS::F64 r_b = VEC_EXT::norm(R_kj);
 
-    PS::F64 in_prod  = r_vec_A*r_vec_B;
+    PS::F64 in_prod  = R_ij*R_kj;
     PS::F64 r_ab_inv = 1.0/(r_a*r_b);
     PS::F64 cos_tmp  = in_prod*r_ab_inv;
     PS::F64 diff     = cos_tmp - std::cos(coef.theta0);
@@ -110,20 +109,20 @@ void calcAngleForce_harmonic_IJK(const PS::F64vec &pos_i,
     PS::F64 acoef     = -coef.k*diff;
     PS::F64 r_ab2_inv = r_ab_inv*r_ab_inv;
 
-    PS::F64vec f_a = (acoef*r_ab2_inv)*( (r_b*r_b*cos_tmp)*r_vec_A - (r_a*r_b)*r_vec_B );
-    PS::F64vec f_b = (acoef*r_ab2_inv)*( (r_a*r_a*cos_tmp)*r_vec_B - (r_a*r_b)*r_vec_A );
+    PS::F64vec F_ij = (acoef*r_ab2_inv)*( (r_b*r_b*cos_tmp)*R_ij - (r_a*r_b)*R_kj );
+    PS::F64vec F_kj = (acoef*r_ab2_inv)*( (r_a*r_a*cos_tmp)*R_kj - (r_a*r_b)*R_ij );
 
     //--- select output
     if(       id_tgt == id_i){
-        force_tgt.addForceIntra(-f_a);
-        force_tgt.addVirialIntra( -calcVirialEPI(r_vec_A, f_a) );
+        force_tgt.addForceIntra(-F_ij);
+        force_tgt.addVirialIntra( -calcVirialEPI(F_ij, R_ij) );
     } else if(id_tgt == id_j) {
-        force_tgt.addForceIntra(f_a + f_b);
-        force_tgt.addVirialIntra(  calcVirialEPI(r_vec_A, f_a)
-                                 + calcVirialEPI(r_vec_B, f_b) );
+        force_tgt.addForceIntra(F_ij + F_kj);
+        force_tgt.addVirialIntra(  calcVirialEPI(F_ij, R_ij)
+                                 + calcVirialEPI(F_kj, R_kj) );
     } else if(id_tgt == id_k) {
-        force_tgt.addForceIntra(-f_b);
-        force_tgt.addVirialIntra( -calcVirialEPI(r_vec_B, f_b) );
+        force_tgt.addForceIntra(-F_kj);
+        force_tgt.addVirialIntra( -calcVirialEPI(F_kj, R_kj) );
     } else {
         std::cerr << "   id_tgt = " << id_tgt << "\n"
                   << "        i = " << id_i
@@ -134,6 +133,11 @@ void calcAngleForce_harmonic_IJK(const PS::F64vec &pos_i,
 }
 
 //------ harminic torsion potential  (i-j-k-l form)
+//  shape:      i
+//              |
+//              j---k     ---- axis ----
+//              |   |
+//   (improper) l   l (dihedral)
 template <class Tid, class Tcoef, class Tforce>
 void calcTorsionForce_harmonic_IJKL(const PS::F64vec &pos_i,
                                     const PS::F64vec &pos_j,
@@ -147,116 +151,105 @@ void calcTorsionForce_harmonic_IJKL(const PS::F64vec &pos_i,
                                     const Tcoef      &coef,
                                           Tforce     &force_tgt){
 
-    PS::F64vec r_ji = pos_i - pos_j;
-    PS::F64vec r_jk = pos_k - pos_j;
-    PS::F64vec r_jl = pos_l - pos_j;
+    if( std::abs(coef.theta0)            <= 1.e-5 ||
+        std::abs(coef.theta0 - Unit::pi) <= 1.e-5 ){
+        //--- pass checking
+    } else {
+        throw std::invalid_argument("theta0 = " + std::to_string(coef.theta0)
+                                    + ", must be 0.0 or pi (0.0 or 180.0 in degree).");
+    }
 
-    PS::F64vec r_A = pos_j - pos_i;
-    PS::F64vec r_B = pos_k - pos_j;
-    PS::F64vec r_C = pos_l - pos_k;
+    PS::F64vec R_ij = pos_i - pos_j;
+    PS::F64vec R_ik = pos_i - pos_k;
+    PS::F64vec R_jl = pos_j - pos_l;
+    PS::F64vec R_kj = pos_k - pos_j;
+    PS::F64vec R_kl = pos_k - pos_l;
 
-    PS::F64vec r_G1 = r_A^r_B;
-    PS::F64vec r_G2 = r_B^r_C;
-    PS::F64vec r_G3 = r_G1^r_G2;
+    PS::F64vec R_a     = VEC_EXT::cross(R_ij, R_kj);
+    PS::F64    r_a     = VEC_EXT::norm(R_a);
+    PS::F64    r_a_inv = 1.0/r_a;
 
-    PS::F64 r2_g1 = r_G1*r_G1;
-    PS::F64 r2_g2 = r_G2*r_G2;
-    PS::F64 r_g1  = std::sqrt(r2_g1);
-    PS::F64 r_g2  = std::sqrt(r2_g2);
-    PS::F64 r_g12 = r_g1*r_g2;
-    PS::F64 r_g12_inv = 1.0/r_g12;
+    PS::F64vec R_b     = VEC_EXT::cross(R_kj, R_kl);
+    PS::F64    r_b     = VEC_EXT::norm(R_b);
+    PS::F64    r_b_inv = 1.0/r_b;
 
-    PS::F32 v    = r_G3*r_jk;
-    PS::S32 sign = (v > 0.0) - (v < 0.0);   // extract sign, sign = -1 (v<0), 0 (v==0), or 1 (v>0).
-    PS::F64 cos_p  = (r_G1*r_G2)*r_g12_inv;
-    PS::F64 acos_p = -sign*cos_p;
-    PS::F64 sin_p  = std::sin(acos_p);
-            cos_p  = std::cos(acos_p);
-    //PS::F64 sin_f  = std::sin(PS::F64(coef.n)*acos_p - coef.theta0);
+    PS::F64 cos_tmp = VEC_EXT::dot(R_a, R_b)*(r_a_inv*r_b_inv);
+    if(cos_tmp < -1.0) cos_tmp = -1.0;
+    if(cos_tmp >  1.0) cos_tmp =  1.0;
+
+    PS::F32 sign = VEC_EXT::dot(R_kj, VEC_EXT::cross(R_a, R_b));
+    if(sign < 0.0){
+        sign = -1.0;
+    } else {
+        sign = 1.0;
+    }
+
+    PS::F64 phi = -sign*std::abs(std::acos(cos_tmp));
+    PS::F64 sin_p = std::sin(phi);
+    PS::F64 cos_p = std::cos(phi);
+
     PS::F64 cos_eq = std::cos(coef.theta0);
-
-    PS::F64 sin_k;
+    PS::F64 sin_tmp, sin_1, sin_2;
     switch (coef.n_min) {
         case 1:
-            sin_k = cos_eq;
+            sin_tmp = cos_eq;
         break;
 
         case 2:
-            sin_k = 2.0*cos_p*cos_eq;
+            sin_tmp = 2.0*cos_p*cos_eq;
         break;
 
         case 3:
-            sin_k = -(4.0*sin_p*sin_p + 3.0)*cos_eq;
+            sin_tmp = (-4.0*sin_p*sin_p + 3.0)*cos_eq;
         break;
 
         case 4:
-            sin_k = 4.0*cos_p*(2.0*cos_p*cos_p - 1.0)*cos_eq;
+            sin_tmp = 4.0*cos_p*(2.0*cos_p*cos_p - 1.0)*cos_eq;
         break;
 
         case 6:
-            sin_k = (  ( std::cos(2.0*acos_p)*(4.0*cos_p*cos_p - 2.0) )
-                     + ( std::cos(4.0*acos_p) )                         )*2.0*cos_p*cos_eq;
+            sin_1   = 4.0*cos_p*(2.0*cos_p*cos_p - 1.0)*std::cos(2.0*phi);
+            sin_2   = 2.0*cos_p*std::cos(4.0*phi);
+            sin_tmp = (sin_1 + sin_2)*cos_eq;
         break;
 
         default:
-            std::cerr << "  n_min = " << coef.n_min << std::endl;
-            throw std::invalid_argument("undefined number of equiliblium points.");
+            sin_tmp = std::sin( PS::F64(coef.n_min)*phi - coef.theta0 )/sin_p;
+            //sin_tmp = std::sin( PS::F64(coef.n_min)*(phi - coef.theta0) )/sin_p;
     }
 
-    //--- potential
-    PS::F64 eng_tmp = 0.0;
-    if(        coef.form == IntraFuncForm::cos  ){
-        eng_tmp = (1.0/4.0)*0.5*coef.k*( 1.0 - std::cos( PS::F64(coef.n_min)*acos_p - coef.k ) );
-    } else if( coef.form == IntraFuncForm::none ){
-        eng_tmp = (1.0/4.0)*0.5*coef.k;
-    } else {
-        std::cerr << "  form = " << ENUM::whatis(coef.form) << std::endl;
-        throw std::invalid_argument("undefined potential form for torsion potential.");
-    }
+    PS::F64 eng_tmp   = (1.0/4.0)*0.5*coef.k*(1.0 - std::cos( PS::F64(coef.n_min)*phi - coef.theta0 ));
+    //PS::F64 eng_tmp   = (1.0/4.0)*0.5*coef.k*(1.0 - std::cos( PS::F64(coef.n_min)*(phi - coef.theta0) ));
+    PS::F64 force_tmp = -0.5*coef.k*PS::F64(coef.n_min)*sin_tmp;
+
+    PS::F64vec F_a = (R_b*r_b_inv - R_a*r_a_inv*cos_p)*r_a_inv;
+    PS::F64vec F_b = (R_a*r_a_inv - R_b*r_b_inv*cos_p)*r_b_inv;
+
     force_tgt.addPotTorsion(eng_tmp);
 
-    PS::F64 pr_aa = r_A*r_A;
-    PS::F64 pr_bb = r_B*r_B;
-    PS::F64 pr_cc = r_C*r_C;
-    PS::F64 pr_ab = r_A*r_B;
-    PS::F64 pr_bc = r_B*r_C;
-    PS::F64 pr_ca = r_C*r_A;
-    PS::F64 t_coef = -0.5*coef.k*PS::F64(coef.n_min)*sin_k*r_g12_inv;
-
-    //--- select output
     PS::F64vec F_tmp;
     if(       id_tgt == id_i){
-        F_tmp = (-r2_g2*pr_bb*cos_p)*r_A
-              + ( r2_g2*pr_ab*cos_p + r_g12*pr_bc)*r_B
-              + (-r_g12*pr_bb)*r_C;
-        force_tgt.addForceIntra(t_coef*F_tmp);
-        force_tgt.addVirialIntra( 2.0*calcVirialEPI(r_ji, F_tmp) );
-    } else if(id_tgt == id_j) {
-        F_tmp = (r2_g2*(pr_bb + pr_ab)*cos_p + r_g12*pr_bc)*r_A
-              + (   (r2_g2*(pr_aa + pr_ab) + r2_g1*pr_cc)*cos_p
-                  + r_g12*(pr_bc + 2.0*pr_ca) )*r_B
-              - (r2_g1*pr_bc*cos_p + r_g12*(pr_ab + pr_bb))*r_C;
-        force_tgt.addForceIntra(t_coef*F_tmp);
-        //force_tgt.addVirialIntra(virial);     virial = 0, considered on other atoms.
-    } else if(id_tgt == id_k) {
-        F_tmp = (r2_g2*pr_ab*cos_p + r_g12*(pr_bc + pr_bb))*r_A
-              + (   (r2_g2*pr_aa + r2_g1*(pr_bc + pr_cc))*cos_p
-                  + r_g12*(pr_ab + 2.0*pr_ca) )*r_B
-              - (r2_g1*(pr_bc + pr_bb)*cos_p + r_g12*pr_ab)*r_C;
-        force_tgt.addForceIntra(t_coef*F_tmp);
-        force_tgt.addVirialIntra( 2.0*calcVirialEPI(r_jk, F_tmp) );
-    } else if(id_tgt == id_l) {
-        F_tmp = (r_g1*r_g2*pr_bb)*r_A
-              - (r2_g1*pr_bc*cos_p + r_g12*pr_ab)*r_B
-              + (r2_g1*pr_bb*cos_p)*r_C;
-        force_tgt.addForceIntra(t_coef*F_tmp);
-        force_tgt.addVirialIntra( 2.0*calcVirialEPI(r_jl, F_tmp) );
+        F_tmp = force_tmp*VEC_EXT::cross(F_a, R_kj);
+        force_tgt.addForceIntra(F_tmp);
+        force_tgt.addVirialIntra( 2.0*calcVirialEPI(F_tmp, R_ij) );
+    } else if(id_tgt == id_j){
+        F_tmp = force_tmp*(VEC_EXT::cross(F_a, R_ik) + VEC_EXT::cross(-F_b, R_kl));
+        force_tgt.addForceIntra(F_tmp);
+        //--- virial = 0.
+    } else if(id_tgt == id_k){
+        F_tmp = force_tmp*(VEC_EXT::cross(-F_a, R_ij) + VEC_EXT::cross(F_b, R_jl));
+        force_tgt.addForceIntra(F_tmp);
+        force_tgt.addVirialIntra( 2.0*calcVirialEPI(F_tmp, R_kj) );
+    } else if(id_tgt == id_l){
+        F_tmp = force_tmp*VEC_EXT::cross(F_b, R_kj);
+        force_tgt.addForceIntra(F_tmp);
+        force_tgt.addVirialIntra( 2.0*calcVirialEPI(F_tmp, -R_jl) );
     } else {
         std::cerr << "   id_tgt = " << id_tgt << "\n"
                   << "        i = " << id_i
-                  <<       "  j = " << id_j
-                  <<       "  k = " << id_k
-                  <<       "  l = " << id_l << std::endl;
+                  <<       ", j = " << id_j
+                  <<       ", k = " << id_k
+                  <<       ", l = " << id_l << std::endl;
         throw std::invalid_argument("id_tgt is not match to id_i, id_j, id_k, or id_l.");
     }
 }

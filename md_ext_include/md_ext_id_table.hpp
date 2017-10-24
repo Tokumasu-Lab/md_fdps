@@ -1,9 +1,9 @@
-//***************************************************************************************
-//  This program is the intra pair table for "md_fdps_main.cpp"
-//    search nearest intra pair particle in "CalcForce***" from EPJ particle array.
-//    This code is using the Framework for Developing Particle Simulator (FDPS).
-//    https://github.com/FDPS
-//***************************************************************************************
+/**************************************************************************************************/
+/**
+* @file  md_ext_id_table.hpp
+* @brief table to search for the nearest atom as ID.
+*/
+/**************************************************************************************************/
 #pragma once
 
 #include<cassert>
@@ -13,7 +13,10 @@
 
 namespace MD_EXT {
 
-    //--- data buffer for searching image paricle
+    /**
+    * @brief internal data class for IntraPairTable.
+    * @details data buffer for searching image paricle.
+    */
     template<class Tindex>
     class ImageEPJ_ {
       private:
@@ -31,7 +34,10 @@ namespace MD_EXT {
         inline PS::F64vec getPos()   const { return this->pair.second; }
     };
 
-    //--- image particle list for same atomID
+    /**
+    * @brief internal data class for IntraPairTable.
+    * @details image particle list for same atomID.
+    */
     template<class Tindex, std::size_t list_size>
     class ImageEPJ_List_ {
       private:
@@ -87,37 +93,49 @@ namespace MD_EXT {
     };
 
 
-    //--- interface class
+    //! @brief table interface class
     template<class Tindex, class Tid>
-    class IntraPairTable {
+    class ID_Table {
       private:
         std::unordered_multimap<Tid, ImageEPJ_<Tindex>> table;
 
       public:
-        //--- clear all data
+        //! @brief clear table data.
         void clear(){
             this->table.clear();
         }
-        //--- reserve table size
+        //! @brief reserve table size.
         void reserve(std::size_t size){
             this->table.reserve(size);
         }
 
-        //--- constructor
-        IntraPairTable(){
+        //! @brief constructor
+        ID_Table(){
             this->table.clear();
             this->table.max_load_factor(0.7);
         }
-        IntraPairTable(std::size_t size){
+        //! @brief constructor with reserving table size.
+        ID_Table(std::size_t size){
             this->table.clear();
             this->table.max_load_factor(0.7);
             this->reserve(size);
         }
 
+
         //--- access functions
+
+        //! @brief add new particle into table.
+        //! @param[in] id Characteristic ID.
+        //! @param[in] j index of *EPJ.
+        //! @param[in] pos position. used for seraching nearest one in image particles.
         inline void add(const Tid id, const Tindex j, const PS::F64vec & pos){
             this->table.insert( std::pair<Tid, ImageEPJ_<Tindex>>(id, ImageEPJ_<Tindex>(j, pos)) );
         }
+
+        //! @brief find particle as ID.
+        //! @param[in] id Characteristic ID.
+        //! @param[in] pos_ref reference position. search particle around this.
+        //! @return index index of *EPJ.
         inline Tindex find(const Tid id, const PS::F64vec & pos_ref) const {
             PS::F64 r2_ref = std::numeric_limits<PS::F64>::max();  // largest F64 value
             Tindex  tgt    = std::numeric_limits<Tindex>::max();   // illigal value
@@ -137,9 +155,11 @@ namespace MD_EXT {
             }
             return tgt;
         }
+        //! @brief number of same ID particle in table.
         PS::S32 count(const Tid id) const {
             return this->table.count(id);
         }
+        //! @brief get unordered_set of all ID.
         std::unordered_set<Tid> getKeyList() const {
             std::unordered_set<Tid> keys;
             std::for_each(this->table.cbegin(), this->table.cend(),

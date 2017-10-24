@@ -12,7 +12,8 @@
 
 #include <particle_simulator.hpp>
 
-#include "md_fdps_atom_class.hpp"
+#include "atom_class.hpp"
+#include "md_coef_table.hpp"
 
 
 //--- file I/O mode
@@ -25,43 +26,44 @@ enum class IO_MODE : int {
 //--- std::string converter for enum
 namespace ENUM {
 
-    std::string whatis(const IO_MODE &e){
-        switch (e) {
-            case IO_MODE::pos:
-                return "pos";
-            break;
+    static const std::map<IO_MODE, std::string> table_IO_MODE_str{
+        {IO_MODE::pos   , "pos"   },
+        {IO_MODE::resume, "resume"},
+        {IO_MODE::VMD   , "VMD"   },
+    };
 
-            case IO_MODE::resume:
-                return "resume";
-            break;
+    static const std::map<std::string, IO_MODE> table_str_IO_MODE{
+        {"pos"   , IO_MODE::pos   },
+        {"resume", IO_MODE::resume},
+        {"VMD"   , IO_MODE::VMD   },
+    };
 
-            case IO_MODE::VMD:
-                return "VMD";
-            break;
-
-            default:
-                throw std::out_of_range("undefined enum value.");
+    std::string what(const IO_MODE &e){
+        if(table_IO_MODE_str.find(e) != table_IO_MODE_str.end()){
+            return table_IO_MODE_str.at(e);
+        } else {
+            using type_base = typename std::underlying_type<IO_MODE>::type;
+            std::cerr << "  IO_MODE: input = " << static_cast<type_base>(e) << std::endl;
+            throw std::out_of_range("undefined enum value in IO_MODE.");
         }
     }
 
     IO_MODE which_IO_MODE(const std::string &str){
-        if(        str == "pos" ){
-            return IO_MODE::pos;
-        } else if( str == "resume" ){
-            return IO_MODE::resume;
-        } else if( str == "VMD" ){
-            return IO_MODE::VMD;
+        if(table_str_IO_MODE.find(str) != table_str_IO_MODE.end()){
+            return table_str_IO_MODE.at(str);
         } else {
             std::cerr << "  IO_MODE: input = " << str << std::endl;
             throw std::out_of_range("undefined enum value in IO_MODE.");
         }
     }
+
 }
 
 inline std::ostream& operator << (std::ostream& s, const IO_MODE &e){
-    s << ENUM::whatis(e);
+    s << ENUM::what(e);
     return s;
 }
+
 
 namespace FILE_IO {
 
@@ -82,7 +84,6 @@ namespace FILE_IO {
     template<class Tpsys>
     void recordVMD(Tpsys & system,
                    const PS::S64 i_step);
-
 
 
 
@@ -168,7 +169,7 @@ namespace FILE_IO {
         if(  i_step < pos_start ||
             (i_step % pos_interval) != 0 ) return;
 
-        if(PS::Comm::getRank() == 0) std::cerr << "  output pos " << i_step << std::endl;
+        if(PS::Comm::getRank() == 0) std::cout << "  output pos " << i_step << std::endl;
 
         char filename[256];
         std::sprintf(filename, "%s/pos%010lld.dat", dir_name_pos, i_step);
@@ -191,7 +192,7 @@ namespace FILE_IO {
         if(  i_step < resume_start ||
             (i_step % resume_interval) != 0 ) return;
 
-        if(PS::Comm::getRank() == 0) std::cerr << "  output resume " << i_step << std::endl;
+        if(PS::Comm::getRank() == 0) std::cout << "  output resume " << i_step << std::endl;
 
         //--- common file name
         char filename[256];
@@ -221,7 +222,7 @@ namespace FILE_IO {
         if(  i_step < pdb_start ||
             (i_step % pdb_interval) != 0 ) return;
 
-        if(PS::Comm::getRank() == 0) std::cerr << "  output pdb " << i_step << std::endl;
+        if(PS::Comm::getRank() == 0) std::cout << "  output pdb " << i_step << std::endl;
 
         char filename[256];
         std::sprintf(filename, "%s/vmd%010lld.pdb", dir_name_pdb, i_step);
@@ -240,7 +241,8 @@ void Atom_FP::writeAscii(FILE* fp) const {
     //--- value buffer
     PS::F64vec pos_real = Normalize::realPos( this->getPos() );
 
-    std::string residue = ENUM::whatis(this->getMolType());
+    std::string residue = MODEL::coefTable_residue.at( std::make_tuple(this->getMolType(),
+                                                                       this->getAtomType()) );
                 residue = residue.substr(3);
     if(residue.size() < 3) { for(size_t i=0; i<3-residue.size(); ++i) residue += " "; }  // add space
 
@@ -250,8 +252,8 @@ void Atom_FP::writeAscii(FILE* fp) const {
             std::fprintf(fp, "%8lld\t%8lld\t%8s\t%8s\t%8.3e\t%8.3e\t%8.3e\n",
                          this->getAtomID(),
                          this->getMolID(),
-                         ENUM::whatis(this->getAtomType()).c_str(),
-                         ENUM::whatis(this->getMolType()).c_str(),
+                         ENUM::what(this->getAtomType()).c_str(),
+                         ENUM::what(this->getMolType()).c_str(),
                          pos_real.x,
                          pos_real.y,
                          pos_real.z);
@@ -270,7 +272,7 @@ void Atom_FP::writeAscii(FILE* fp) const {
             std::sprintf(add_buff, "%5lld", this->getAtomID() );                        //  7~11 atom id
             std::strcat(buff, add_buff );
             std::strcat(buff, " ");                                                     // 12    space
-            std::sprintf(add_buff, "%4s", ENUM::whatis(this->getAtomType()).c_str() );  // 13~16 atom name
+            std::sprintf(add_buff, "%4s", ENUM::what(this->getAtomType()).c_str() );  // 13~16 atom name
             std::strcat(buff, add_buff);
             std::strcat(buff, " ");                                                     // 17    alternate location indicator
             std::sprintf(add_buff, "%.3s", residue.c_str() );                           // 18~20 residue name

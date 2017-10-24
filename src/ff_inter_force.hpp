@@ -10,7 +10,7 @@
 #include <particle_simulator.hpp>
 #include <particle_mesh.hpp>
 
-#include "md_fdps_coef_table.hpp"
+#include "md_coef_table.hpp"
 #include "ff_inter_force_func.hpp"
 
 

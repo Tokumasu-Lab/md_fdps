@@ -1,6 +1,9 @@
-//***************************************************************************************
-//  This program is loading model parameter function.
-//***************************************************************************************
+/**************************************************************************************************/
+/**
+* @file  comm_tool.hpp
+* @brief STL container wrapper for PS::Comm
+*/
+/**************************************************************************************************/
 #pragma once
 
 #include <vector>
@@ -27,10 +30,16 @@
 
 
 
-
+/**
+* @brief wrappers for PS::Comm
+*/
 namespace COMM_TOOL {
 
-    //--- broadcast by reference value
+    /**
+    * @brief wrapper for static size class.
+    * @param[in,out] v target. MUST NOT contain pointer member.
+    * @param[in] root ID of source process.
+    */
     template <typename T>
     void broadcast(T &v, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
@@ -39,8 +48,12 @@ namespace COMM_TOOL {
         PS::Comm::broadcast(&v, 1, root);
     }
 
-    //--- broadcast for STL container
-    //------ for vector<T>
+    /**
+    * @brief specialization for std::vector<T>.
+    * @param[in,out] vec target. class T MUST NOT contain pointer member.
+    * @param[in] root ID of source process.
+    * @details adapting size of the vector between all process and broadcast.
+    */
     template <typename T>
     void broadcast(std::vector<T> &vec, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
@@ -60,7 +73,12 @@ namespace COMM_TOOL {
         PS::Comm::broadcast(&vec[0], size, root);
     }
 
-    //------ for vector<string>
+    /**
+    * @brief specialization for std::vector<std::string>.
+    * @param[in,out] vec_str target.
+    * @param[in] root ID of source process.
+    * @details transcode std::vector<std::string> to std::vector<char> and call broadcast() for vector<T>.
+    */
     void broadcast(std::vector<std::string> &vec_str, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_vec<string>  len=" << vec_str.size() << std::endl;
@@ -93,7 +111,14 @@ namespace COMM_TOOL {
         }
     }
 
-    //------ for vector<vector>
+    /**
+    * @brief specialization for std::vector<std::vector<T>>.
+    * @param[in,out] vec_vec target.
+    * @param[in] root ID of source process.
+    * @details devide std::vector<std::vector<T>> into std::vector<T> and std::vector<index>, then call broadcast() for std::vector<T>.
+    * @details class T accepts std::vector<>, std::string, or user-defined class WITHOUT pointer member.
+    * @details If 3 or more nested std::vector<...> is passed, this function will call itself recurcively.
+    */
     template <typename T>
     void broadcast(std::vector<std::vector<T>> &vec_vec, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
@@ -133,7 +158,13 @@ namespace COMM_TOOL {
         }
     }
 
-    //------ for vector<pair>
+    /**
+    * @brief specialization for std::vector<std::pair<Ta, Tb>>.
+    * @param[in,out] vec_pair target.
+    * @param[in] root ID of source process.
+    * @details devide std::vector<std::pair<Ta, Tb>> into std::vector<Ta> and std::vector<Tb>, then call broadcast() for std::vector<T>.
+    * @details class Ta and Tb accept std::vector<>, std::string, or user-defined class WITHOUT pointer member.
+    */
     template <typename Ta, typename Tb>
     void broadcast(std::vector<std::pair<Ta, Tb>> &vec_pair, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
@@ -160,8 +191,13 @@ namespace COMM_TOOL {
         }
     }
 
-    //------ for unordered_map<Tk, Tv> & unorderd_multimap<Tk, Tv>
-    //--------- imprementation for container with insert()
+    /**
+    * @brief specialize for STL container with insert().
+    * @param[in,out] c target container.
+    * @param[in] root ID of source process.
+    * @details convert the container into std::vector<Telem>, then call broadcast().
+    * @details value of class Tc accepts std::vector<>, std::string, or user-defined class WITHOUT pointer member.
+    */
     template<typename Tc, typename Telem>
     void broadcast_insert_container(Tc &c, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
@@ -183,7 +219,7 @@ namespace COMM_TOOL {
         }
     }
 
-    //------ wrapper for std::unordered_map
+    //! @brief wrapper for std::unordered_map<>
     template <class Key, class T, class Hash, class Pred, class Allocator>
     void broadcast(std::unordered_map<Key, T, Hash, Pred, Allocator> &map, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL
@@ -194,7 +230,7 @@ namespace COMM_TOOL {
                                    >(map, root);
     }
 
-    //------ wrapper for std::unordered_multimap
+    //! @brief wrapper for std::unordered_multimap<>
     template <class Key, class T, class Hash, class Pred, class Allocator>
     void broadcast(std::unordered_multimap<Key, T, Hash, Pred, Allocator> &map, const PS::S32 &root){
         #ifdef DEBUG_COMM_TOOL

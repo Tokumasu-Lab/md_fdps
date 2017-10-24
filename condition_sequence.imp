@@ -64,8 +64,8 @@ default   NVE  300.0  0.0
 //=====================================================================
 //  external system control sequence:
 //      mode, period, temperature, pressure
-//          mode        [-]       must be "NVE", "NVT", or "NPT".
-//          period      [intger]  period for applying control.
+//          mode        [-]        must be "NVE", "NVT", or "NPT".
+//          period      [integer]  period for applying control.
 //          temperature [K]
 //          pressure    [MPa]
 //=====================================================================
@@ -73,7 +73,7 @@ default   NVE  300.0  0.0
 //--- test sequeence
 NVE    1000  300.0   0.0
 NVT   10000  400.0   0.0
-NVT   10000  600.0   0.0
+NPT   78000  600.0   1.0
 NVT   10000  400.0   0.0
 NVE    1000  400.0   0.0
 

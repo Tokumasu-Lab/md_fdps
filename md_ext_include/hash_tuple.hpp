@@ -1,6 +1,9 @@
-//***************************************************************************************
-//  This is hash function for tuple to use as key of std::map<>.
-//***************************************************************************************
+/**************************************************************************************************/
+/**
+* @file  hash_tuple.hpp
+* @brief specialization of std::hash<T> for std::tuple<...>.
+*/
+/**************************************************************************************************/
 #pragma once
 
 #include <tuple>
@@ -8,9 +11,12 @@
 #include <cassert>
 
 
-//--- ref: https://stackoverflow.com/questions/7110301/generic-hash-for-tuples-in-unordered-map-unordered-set
+/**
+* @brief specialization of std::hash<T> for std::tuple<...>.
+* @details ref: https://stackoverflow.com/questions/7110301/generic-hash-for-tuples-in-unordered-map-unordered-set
+*/
 namespace hash_tuple {
-    
+
     template<class T>
     struct hash_internal{
         size_t operator () (T const &t) const {
@@ -18,7 +24,8 @@ namespace hash_tuple {
         }
     };
 
-    //--- the "hash_combine" is same to boost::hash_combine()
+    //! @brief combine multiple hash values to one hash value.
+    //! @details the "hash_combine()" is same to boost::hash_combine()
     template<class T>
     void hash_combine(size_t &seed, T const &v){
         //--- phi = (1 + sqrt(5)) / 2,   2^32 / phi = 0x9e3779b9
@@ -40,7 +47,7 @@ namespace hash_tuple {
         }
     };
 
-    //--- interface for tuple
+    //! @brief specialize interface for std::hash<std::tuple<...>>.
     template<typename Tuple>
     struct hash_func {
         size_t operator () (Tuple const &tt) const {

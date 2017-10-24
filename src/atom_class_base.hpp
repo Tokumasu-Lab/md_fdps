@@ -10,7 +10,7 @@
 
 #include <particle_simulator.hpp>
 
-#include "md_fdps_enum_model.hpp"
+#include "md_enum.hpp"
 
 
 //--- base classes for particle data ----------------------------------------------------

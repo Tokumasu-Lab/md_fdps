@@ -1,222 +1,29 @@
 //***************************************************************************************
-//  This program is the temporary buffer data class for intramolecular force calculation.
-//    This code is using the Framework for Developing Particle Simulator (FDPS).
-//    https://github.com/FDPS
+//  This is the pair-ID data table class for calculate interactions.
 //***************************************************************************************
 #pragma once
 
+#include <vector>
 #include <string>
 #include <sstream>
-#include <unordered_map>
+#include <stdexcept>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
-#include "hash_tuple.hpp"
-#include "comm_tool.hpp"
-
-#include "md_fdps_atom_class_base.hpp"
-
-
-//--- enum indicator for intramolecular interaction
-enum class IntraFuncForm : int {
-    harmonic,
-    anharmonic,
-
-    cos,
-    none,
-};
-
-namespace ENUM {
-
-    std::string whatis(const IntraFuncForm &e){
-        switch (e) {
-            case IntraFuncForm::harmonic:
-                return "harmonic";
-            break;
-
-            case IntraFuncForm::anharmonic:
-                return "anharmonic";
-            break;
-
-            case IntraFuncForm::cos:
-                return "cos";
-            break;
-
-            case IntraFuncForm::none:
-                return "none";
-            break;
-
-            default:
-                throw std::out_of_range("undefined enum value in IntraFuncForm.");
-        }
-    }
-
-    IntraFuncForm which_IntraFuncForm(const std::string &str){
-        if(        str == "harmonic" ){
-            return IntraFuncForm::harmonic;
-        } else if( str == "anharmonic" ){
-            return IntraFuncForm::anharmonic;
-        } else if( str == "cos" ){
-            return IntraFuncForm::cos;
-        } else if( str == "none" ){
-            return IntraFuncForm::none;
-        } else {
-            std::cerr << "  IntraFuncForm: input = " << str << std::endl;
-            throw std::out_of_range("undefined enum value in IntraFuncForm.");
-        }
-    }
-}
-
-//--- output function as "std::cout << (enum class::value)"
-inline std::ostream& operator << (std::ostream& s, const IntraFuncForm &e){
-    s << ENUM::whatis(e);
-    return s;
-}
+#include "md_enum.hpp"
+#include "atom_class_base.hpp"
 
 
 //--- grobal object of parameter table
 namespace MODEL {
-
-    //--- parameter for intermolecular interactions
-    struct CoefElement {
-      public:
-        PS::F32 mass;
-        PS::F32 charge;
-        PS::F32 vdw_d;
-        PS::F32 vdw_r;
-
-        inline std::string to_string(const size_t &shift = 0) const {
-            std::ostringstream oss;
-
-            oss << std::setw(shift + 9) << "mass   : " << std::setprecision(8) << this->mass   << "\n";
-            oss << std::setw(shift + 9) << "charge : " << std::setprecision(8) << this->charge << "\n";
-            oss << std::setw(shift + 9) << "vdw_d  : " << std::setprecision(8) << this->vdw_d  << "\n";
-            oss << std::setw(shift + 9) << "vdw_r  : " << std::setprecision(8) << this->vdw_r  << "\n";
-
-            return oss.str();
-        }
-
-        inline void print(const size_t &shift = 0) const {
-            std::cout << this->to_string(shift);
-        }
-    };
-
-    //--- parameter for intramolecular interactions
-    struct CoefBond {
-      public:
-        IntraFuncForm form;
-        PS::F32 r0, k, a;
-
-        inline std::string to_string(const size_t &shift = 0) const {
-            std::ostringstream oss;
-
-            oss << std::setw(shift + 7) << "form : "                         << this->form << "\n";
-            oss << std::setw(shift + 7) << "r0   : " << std::setprecision(8) << this->r0   << "\n";
-            oss << std::setw(shift + 7) << "k    : " << std::setprecision(8) << this->k    << "\n";
-            oss << std::setw(shift + 7) << "a    : " << std::setprecision(8) << this->a    << "\n";
-
-            return oss.str();
-        }
-
-        inline void print(const size_t &shift = 0) const {
-            std::cout << this->to_string(shift);
-        }
-    };
-
-    struct CoefAngle {
-      public:
-        IntraFuncForm form;
-        PS::F32 theta0, k;
-
-        inline std::string to_string(const size_t &shift = 0) const {
-            std::ostringstream oss;
-
-            oss << std::setw(shift + 9) << "form   : "                         << this->form   << "\n";
-            oss << std::setw(shift + 9) << "k      : " << std::setprecision(8) << this->k      << "\n";
-            oss << std::setw(shift + 9) << "theta0 : " << std::setprecision(8) << this->theta0 << "\n";
-
-            return oss.str();
-        }
-
-        inline void print(const size_t &shift = 0) const {
-            std::cout << this->to_string();
-        }
-    };
-
-    struct CoefTorsion {
-      public:
-        IntraFuncForm form;
-        PS::S32 n_min;
-        PS::F32 k, theta0;
-
-        inline std::string to_string(const size_t &shift = 0) const {
-            std::ostringstream oss;
-
-            oss << std::setw(shift + 9) << "form   : "                         << this->form   << "\n";
-            oss << std::setw(shift + 9) << "n_min  : " << std::setprecision(8) << this->n_min  << "\n";
-            oss << std::setw(shift + 9) << "k      : " << std::setprecision(8) << this->k      << "\n";
-            oss << std::setw(shift + 9) << "theta0 : " << std::setprecision(8) << this->theta0 << "\n";
-
-            return oss.str();
-        }
-
-        inline void print(const size_t &shift = 0) const {
-            std::cout << this->to_string();
-        }
-    };
-
-    //--- for intermolecular parameter
-    using KeyElem = std::tuple<MolName,
-                               AtomName>;
-    std::unordered_map< KeyElem,
-                        CoefElement,
-                        hash_tuple::hash_func<KeyElem>> coefTable_elem;
-
-    //--- for intramolecular parameter
-    //------ key = (model_name, i_atom, j_atom)
-    using KeyBond = std::tuple<MolName,
-                               AtomName,
-                               AtomName>;
-    std::unordered_map< KeyBond,
-                        CoefBond,
-                        hash_tuple::hash_func<KeyBond>> coefTable_bond;
-
-    //------ key = (model_name, i_atom, j_atom, k_atom)
-    using KeyAngle = std::tuple<MolName,
-                                AtomName,
-                                AtomName,
-                                AtomName>;
-    std::unordered_map< KeyAngle,
-                        CoefAngle,
-                        hash_tuple::hash_func<KeyAngle>> coefTable_angle;
-
-    //------ key = (model_name, i_atom, j_atom, k_atom, l_atom)
-    using KeyTorsion = std::tuple<MolName,
-                                  AtomName,
-                                  AtomName,
-                                  AtomName,
-                                  AtomName>;
-    std::unordered_map< KeyTorsion,
-                        CoefTorsion,
-                        hash_tuple::hash_func<KeyTorsion>> coefTable_torsion;
-
-    //--- broadcast parameter table from rank=0 to other process
-    void broadcast_coefTable(const PS::S32 root = 0){
-        COMM_TOOL::broadcast(coefTable_elem,    root);
-        COMM_TOOL::broadcast(coefTable_bond,    root);
-        COMM_TOOL::broadcast(coefTable_angle,   root);
-        COMM_TOOL::broadcast(coefTable_torsion, root);
-    }
-
-
 
     //--- intramolecular force parameter manager for PS::ParticleSystem<FP>
     template <typename Tid>
     class IntrarMolecularForcePair_manager {
     private:
         struct Change {
-            Tid  i;
-            Tid  j;
+            Tid  i, j;
             bool add;
         };
         std::vector<Change> change_journal;
@@ -234,14 +41,16 @@ namespace MODEL {
         std::vector<MaskList>    intra_mask;
         std::vector<BondList>    bond_list;
         std::vector<AngleList>   angle_list;
-        std::vector<TorsionList> torsion_list;
+        std::vector<TorsionList> dihedral_list;
+        std::vector<TorsionList> improper_list;
 
         //--- functions
         void setAtomNumber(const Tid &n) {
             this->intra_mask.resize(n);
             this->bond_list.resize(n);
             this->angle_list.resize(n);
-            this->torsion_list.resize(n);
+            this->dihedral_list.resize(n);
+            this->improper_list.resize(n);
         }
         void clear() {
             this->change_journal.clear();
@@ -249,7 +58,8 @@ namespace MODEL {
             this->intra_mask.clear();
             this->bond_list.clear();
             this->angle_list.clear();
-            this->torsion_list.clear();
+            this->dihedral_list.clear();
+            this->improper_list.clear();
         }
         void addBond(const Tid &i, const Tid &j){
             assert(i != j);
@@ -263,6 +73,7 @@ namespace MODEL {
         void eraseConnect(const Tid &i, const Tid &j){
             assert(i != j);
             // underdevelop
+            throw std::logic_error("underdevelop !");
         }
 
         void broadcast(const PS::S32 root = 0){
@@ -270,14 +81,16 @@ namespace MODEL {
 
             this->intra_mask.resize(this->bond_list.size());
             this->angle_list.resize(this->bond_list.size());
-            this->torsion_list.resize(this->bond_list.size());
+            this->dihedral_list.resize(this->bond_list.size());
+            this->improper_list.resize(this->bond_list.size());
 
-            this->makeIntraList_all();
+            this->makeIntraList();
 
             this->change_journal.clear();
         }
 
         void sync(){
+            throw std::logic_error("underdevelop !");
             // accumulate this->change_journal
             // then update this->bond_list in each process
             // call this->makeIntraList(id)
@@ -291,7 +104,8 @@ namespace MODEL {
             this->intra_mask.at(atom_id).clear();
 
             this->angle_list.at(atom_id).clear();
-            this->torsion_list.at(atom_id).clear();
+            this->dihedral_list.at(atom_id).clear();
+            this->improper_list.at(atom_id).clear();
 
             //--- construct lists    source: bond_list
             std::vector<Tid> node_list;
@@ -304,7 +118,7 @@ namespace MODEL {
             this->make_torsion_list(atom_id);
         }
 
-        void makeIntraList_all(){
+        void makeIntraList(){
             for(size_t i=0; i<this->bond_list.size(); ++i){
                 this->makeIntraList(i);
             }
@@ -403,7 +217,7 @@ namespace MODEL {
                 assert(node_k != node_j);
                 if(node_k == root) continue;
 
-                //--- I-J-K-L
+                //--- dihedral, I-J-K-L
                 for(size_t l=0; l<this->bond_list.at(node_k).size(); ++l){
                     Tid node_l = this->bond_list.at(node_k).at(l);
 
@@ -411,13 +225,13 @@ namespace MODEL {
                     if(node_l == node_j ||
                        node_l == root     ) continue;
 
-                    this->torsion_list.at(root).emplace_back( std::make_tuple(root,
-                                                                              node_j,
-                                                                              node_k,
-                                                                              node_l ) );
+                    this->dihedral_list.at(root).emplace_back( std::make_tuple(root,
+                                                                               node_j,
+                                                                               node_k,
+                                                                               node_l ) );
                 }
 
-                //--- I-J<KL
+                //--- improper, I-J<KL
                 for(size_t l=k+1; l<this->bond_list.at(node_j).size(); ++l){
                     Tid node_l = this->bond_list.at(node_j).at(l);
 
@@ -425,13 +239,13 @@ namespace MODEL {
                     if(node_l == node_k ||
                        node_l == root     ) continue;
 
-                    this->torsion_list.at(root).emplace_back( std::make_tuple(root,
-                                                                              node_j,
-                                                                              node_k,
-                                                                              node_l ) );
+                    this->improper_list.at(root).emplace_back( std::make_tuple(root,
+                                                                               node_j,
+                                                                               node_k,
+                                                                               node_l ) );
                 }
 
-                //--- L-I-J-K
+                //--- dihedral, L-I-J-K
                 for(size_t l=0; l<this->bond_list.at(root).size(); ++l){
                     Tid node_l = this->bond_list.at(root).at(l);
 
@@ -439,10 +253,10 @@ namespace MODEL {
                     if(node_l == node_j ||
                        node_l == node_k   ) continue;
 
-                    this->torsion_list.at(root).emplace_back( std::make_tuple(node_l,
-                                                                              root,
-                                                                              node_j,
-                                                                              node_k ) );
+                    this->dihedral_list.at(root).emplace_back( std::make_tuple(node_l,
+                                                                               root,
+                                                                               node_j,
+                                                                               node_k ) );
                 }
             }
 
@@ -457,10 +271,10 @@ namespace MODEL {
                     if(node_l == node_j) continue;
                     if(node_l == node_k) continue;
 
-                    this->torsion_list.at(root).emplace_back( std::make_tuple(node_j,
-                                                                              root,
-                                                                              node_k,
-                                                                              node_l ) );
+                    this->improper_list.at(root).emplace_back( std::make_tuple(node_j,
+                                                                               root,
+                                                                               node_k,
+                                                                               node_l ) );
                 }
             }
         }
@@ -491,13 +305,19 @@ namespace MODEL {
 
         oss << "  angle =";
         for(auto tuple : MODEL::intra_pair_manager.angle_list.at(id)){
-            oss << " " << ENUM::whatis(tuple);
+            oss << " " << ENUM::what(tuple);
         }
         oss << "\n";
 
-        oss << "  torsion =";
-        for(auto tuple : MODEL::intra_pair_manager.torsion_list.at(id)){
-            oss << " " << ENUM::whatis(tuple);
+        oss << "  dohedral torsion =";
+        for(auto tuple : MODEL::intra_pair_manager.dihedral_list.at(id)){
+            oss << " " << ENUM::what(tuple);
+        }
+        oss << "\n";
+
+        oss << "  improper torsion =";
+        for(auto tuple : MODEL::intra_pair_manager.improper_list.at(id)){
+            oss << " " << ENUM::what(tuple);
         }
         oss << "\n";
 

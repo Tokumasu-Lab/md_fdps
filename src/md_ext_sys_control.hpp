@@ -11,11 +11,9 @@
 #include <cassert>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
-#include "comm_tool.hpp"
-#include "md_ext_normalize.hpp"
-
-#include "md_fdps_unit.hpp"
+#include "unit.hpp"
 
 
 enum class EXT_SYS_MODE : int {
@@ -25,32 +23,32 @@ enum class EXT_SYS_MODE : int {
 };
 
 namespace ENUM {
-    inline std::string whatis(const EXT_SYS_MODE &e){
-        switch (e) {
-            case EXT_SYS_MODE::NVE:
-                return "NVE";
-            break;
 
-            case EXT_SYS_MODE::NVT:
-                return "NVT";
-            break;
+    static const std::map<EXT_SYS_MODE, std::string> table_EXT_SYS_MODE_str{
+        {EXT_SYS_MODE::NVE, "NVE"},
+        {EXT_SYS_MODE::NVT, "NVT"},
+        {EXT_SYS_MODE::NPT, "NPT"},
+    };
 
-            case EXT_SYS_MODE::NPT:
-                return "NPT";
-            break;
+    static const std::map<std::string, EXT_SYS_MODE> table_str_EXT_SYS_MODE{
+        {"NVE", EXT_SYS_MODE::NVE},
+        {"NVT", EXT_SYS_MODE::NVT},
+        {"NPT", EXT_SYS_MODE::NPT},
+    };
 
-            default:
-                throw std::out_of_range("undefined enum value.");
+    std::string what(const EXT_SYS_MODE &e){
+        if(table_EXT_SYS_MODE_str.find(e) != table_EXT_SYS_MODE_str.end()){
+            return table_EXT_SYS_MODE_str.at(e);
+        } else {
+            using type_base = typename std::underlying_type<EXT_SYS_MODE>::type;
+            std::cerr << "  EXT_SYS_MODE: input = " << static_cast<type_base>(e) << std::endl;
+            throw std::out_of_range("undefined enum value in EXT_SYS_MODE.");
         }
     }
 
     EXT_SYS_MODE which_EXT_SYS_MODE(const std::string &str){
-        if(        str == "NVE" ){
-            return EXT_SYS_MODE::NVE;
-        } else if( str == "NVT" ){
-            return EXT_SYS_MODE::NVT;
-        } else if( str == "NPT" ){
-            return EXT_SYS_MODE::NPT;
+        if(table_str_EXT_SYS_MODE.find(str) != table_str_EXT_SYS_MODE.end()){
+            return table_str_EXT_SYS_MODE.at(str);
         } else {
             std::cerr << "  EXT_SYS_MODE: input = " << str << std::endl;
             throw std::out_of_range("undefined enum value in EXT_SYS_MODE.");
@@ -59,7 +57,7 @@ namespace ENUM {
 }
 
 inline std::ostream& operator << (std::ostream& s, const EXT_SYS_MODE &e){
-    s << ENUM::whatis(e);
+    s << ENUM::what(e);
     return s;
 }
 
@@ -358,7 +356,7 @@ namespace EXT_SYS {
             break;
 
             default:
-                std::cerr << "  mode = " << ENUM::whatis(setting.mode) << std::endl;
+                std::cerr << "  mode = " << ENUM::what(setting.mode) << std::endl;
                 throw std::invalid_argument("undefined mode of EXT_SYS::Controller");
         }
     }

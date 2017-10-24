@@ -9,7 +9,7 @@
 
 #include <particle_simulator.hpp>
 
-#include "md_fdps_coef_table.hpp"
+#include "md_intra_pair_table.hpp"
 
 
 int main(int argc, char *argv[]) {
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
 
     //--- construct pair list
-    MODEL::intra_pair_manager.makeIntraList_all();
+    MODEL::intra_pair_manager.makeIntraList();
 
 
     //--- show result
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
     MODEL::intra_pair_manager.addBond(5, 4);
 
     //--- construct pair list
-    MODEL::intra_pair_manager.makeIntraList_all();
+    MODEL::intra_pair_manager.makeIntraList();
 
 
     //--- show result

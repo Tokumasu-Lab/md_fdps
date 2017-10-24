@@ -6,8 +6,8 @@
 
 #include <particle_simulator.hpp>
 
-#include "md_fdps_ext_sys_control.hpp"
-#include "md_fdps_loading_condition.hpp"
+#include "md_ext_sys_control.hpp"
+#include "md_loading_condition.hpp"
 
 int main(int argc, char *argv[]) {
     PS::Initialize(argc, argv);

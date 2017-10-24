@@ -19,7 +19,7 @@ FDPS ver3.0 向け
 - https://github.com/FDPS/FDPS
 - http://www.jmlab.jp/?p=530
 
-#### FDPS開発チームの動作確認環境 (FDPSの仕様書参照)
+#### FDPS開発チームの動作確認環境 (FDPSのチュートリアル参照)
 C++ コンパイラ (gcc 4.4.5以降，あるいはKコンパイラ 1.2.0)  
 MPI version 1.3環境　(OpenMPI 1.8.1で動作確認)  
 FFTw 3.3以降  

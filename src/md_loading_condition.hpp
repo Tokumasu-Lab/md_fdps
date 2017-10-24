@@ -14,14 +14,11 @@
 #include <stdexcept>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
-#include "comm_tool.hpp"
-#include "str_tool.hpp"
-#include "md_ext_normalize.hpp"
-
-#include "md_fdps_atom_class.hpp"
-#include "md_fdps_coef_table.hpp"
-#include "md_fdps_ext_sys_control.hpp"
+#include "atom_class.hpp"
+#include "md_coef_table.hpp"
+#include "md_ext_sys_control.hpp"
 
 
 //--- file loading mode
@@ -41,52 +38,55 @@ enum class CONDITION_LOAD_MODE : int {
 //--- std::string converter for enum
 namespace ENUM {
 
-    std::string whatis(const CONDITION_LOAD_MODE &e){
-        switch (e) {
-            case CONDITION_LOAD_MODE::time_step:
-                return "time_step";
-            break;
+    static const std::map<std::string, CONDITION_LOAD_MODE> table_str_CONDITION_LOAD_MODE{
+        {"time_step"       , CONDITION_LOAD_MODE::time_step        },
+        {"tree"            , CONDITION_LOAD_MODE::tree             },
+        {"cut_off"         , CONDITION_LOAD_MODE::cut_off          },
+        {"ext_sys"         , CONDITION_LOAD_MODE::ext_sys          },
+        {"ext_sys_sequence", CONDITION_LOAD_MODE::ext_sys_sequence },
+        {"record"          , CONDITION_LOAD_MODE::record           },
 
-            case CONDITION_LOAD_MODE::tree:
-                return "tree";
-            break;
+        {"molecule"        , CONDITION_LOAD_MODE::molecule         },
+        {"box"             , CONDITION_LOAD_MODE::box              },
+        {"ex_radius"       , CONDITION_LOAD_MODE::ex_radius        },
+    };
 
-            case CONDITION_LOAD_MODE::cut_off:
-                return "cut_off";
-            break;
+    static const std::map<CONDITION_LOAD_MODE, std::string> table_CONDITION_LOAD_MODE_str{
+        {CONDITION_LOAD_MODE::time_step       , "time_step"        },
+        {CONDITION_LOAD_MODE::tree            , "tree"             },
+        {CONDITION_LOAD_MODE::cut_off         , "cut_off"          },
+        {CONDITION_LOAD_MODE::ext_sys         , "ext_sys"          },
+        {CONDITION_LOAD_MODE::ext_sys_sequence, "ext_sys_sequence" },
+        {CONDITION_LOAD_MODE::record          , "record"           },
 
-            case CONDITION_LOAD_MODE::ext_sys:
-                return "ext_sys";
-            break;
+        {CONDITION_LOAD_MODE::molecule        , "molecule"         },
+        {CONDITION_LOAD_MODE::box             , "box"              },
+        {CONDITION_LOAD_MODE::ex_radius       , "ex_radius"        },
+    };
 
-            case CONDITION_LOAD_MODE::ext_sys_sequence:
-                return "ext_sys_sequence";
-            break;
-
-            case CONDITION_LOAD_MODE::record:
-                return "record";
-            break;
-
-            case CONDITION_LOAD_MODE::molecule:
-                return "molecule";
-            break;
-
-            case CONDITION_LOAD_MODE::box:
-                return "box";
-            break;
-
-            case CONDITION_LOAD_MODE::ex_radius:
-                return "ex_radius";
-            break;
-
-            default:
-                throw std::out_of_range("undefined enum value.");
+    CONDITION_LOAD_MODE which_CONDITION_LOAD_MODE(const std::string &str){
+        if(table_str_CONDITION_LOAD_MODE.find(str) != table_str_CONDITION_LOAD_MODE.end()){
+            return table_str_CONDITION_LOAD_MODE.at(str);
+        } else {
+            std::cerr << "  CONDITION_LOAD_MODE: input = " << str << std::endl;
+            throw std::out_of_range("undefined enum value in CONDITION_LOAD_MODE.");
         }
     }
+
+    std::string what(const CONDITION_LOAD_MODE &e){
+        if(table_CONDITION_LOAD_MODE_str.find(e) != table_CONDITION_LOAD_MODE_str.end()){
+            return table_CONDITION_LOAD_MODE_str.at(e);
+        } else {
+            using type_base = typename std::underlying_type<CONDITION_LOAD_MODE>::type;
+            std::cerr << "  CONDITION_LOAD_MODE: input = " << static_cast<type_base>(e) << std::endl;
+            throw std::out_of_range("undefined enum value in CONDITION_LOAD_MODE.");
+        }
+    }
+
 }
 
 inline std::ostream& operator << (std::ostream& s, const CONDITION_LOAD_MODE &e){
-    s << ENUM::whatis(e);
+    s << ENUM::what(e);
     return s;
 }
 
@@ -380,7 +380,7 @@ namespace System {
                 oss << "\n";
             }
         } else {
-            oss << "    none.\n";
+            oss << "    free.\n";
             oss << "\n";
         }
 
@@ -450,10 +450,10 @@ namespace System {
         assert(setting.dt > 0.0);
         return setting.dt;
     }
-    PS::F64 get_cutoff_LJ()   { return setting.cut_off_LJ;    }
+    PS::F64 get_cutoff_LJ()    { return setting.cut_off_LJ;    }
 
-    PS::S64 get_eng_start()     { return setting.eng_start;     }
+    PS::S64 get_eng_start()    { return setting.eng_start;     }
     PS::S64 get_prop_start()   { return setting.prop_start;    }
-    PS::S64 get_eng_interval()  { return setting.eng_interval;  }
+    PS::S64 get_eng_interval() { return setting.eng_interval;  }
     PS::S64 get_prop_interval(){ return setting.prop_interval; }
 }

@@ -1,7 +1,10 @@
 //=======================================================================================
-//  Ar gas model
-//    ref: 法政大学情報メディア研究センター研究報告, Vol.22, 2009
-//         Isotherm of Argon by Molecular Dynamics Simulation and Vand der Waals Theory
+//  OPLS-AA model
+//    ref: J. Am. Chem. Soc., Vol. 118, No. 45, (1996)  for intermolecular, bond, angle
+//  DREIDING
+//    ref: J. Phys. Chem. B, Vol. 108, 3149, (2004)  for torsion
+//        d3 =  1 : theta0 = 0.0
+//        d3 = -1 : theta0 = 180.0
 //=======================================================================================
 
 //=======================================================================================
@@ -13,8 +16,11 @@
 //      vdw_d     [kcal/mol]       function: V(r) = vdw_d*((vdw_r/r)^12 - 2*(vdw_r/r)^6)
 //      vdw_r     [angstrom]
 //=======================================================================================
-@<PARAM>ATOM 1
-  1  Ar  gas  39.948   0.24828   3.8276
+@<PARAM>ATOM 4
+  1  CH3  alc  15.03452   0.066   3.929
+  2  CH   alc  13.01864   0.066   3.929
+  3  O    alc  15.9994    0.17    3.502
+  4  H    alc  1.00794    0.0     3.0
 
 //=======================================================================================
 //  definition of bond potential.
@@ -25,7 +31,10 @@
 //      k    [kcal/mol]
 //      a    [/angstrom]  used in "anharmonic" form.
 //=======================================================================================
-@<PARAM>BOND 0
+@<PARAM>BOND 3
+  1  CH3  CH   harmonic   1.526  310  0.0
+  2  CH   O    harmonic   1.412  310  0.0    // K of CH2-CH2 is used as temporary.
+  3  O    H    harmonic   0.946  553  0.0
 
 //=======================================================================================
 //  definition of angle potential.
@@ -35,16 +44,22 @@
 //      theta0  [degree]         equivalent angle
 //      k       [kcal/mol·rad^2]
 //=======================================================================================
-@<PARAM>ANGLE 0
+@<PARAM>ANGLE 3
+  1  CH3  CH   CH3  harmonic  109.5  35
+  2  CH3  CH   O    harmonic  109.5  80
+  3  CH   O    H    harmonic  108.5  55
 
 //=======================================================================================
 //  definition of torsion potential.
 // (torsion_id), shape, i, j, k, l, form, theta0, v, n
 //      shape      [-]         must be "dihedral" or "improper"
-//      i, j, k, l [-]         i-j-k-l shape, string, must be same to "atom_name" in ***.mol2 file.
+//      i, j, k, l [-]         i-jk-l shape, string, must be same to "atom_name" in ***.mol2 file.
 //      form       [-]         must be "none" or "cos".
 //      theta0     [degree]    equivalent angle
 //      v          [kcal/mol]
 //      n          [integer]   number of local minimum point
 //=======================================================================================
-@<PARAM>TORSION 0
+@<PARAM>TORSION 3
+  1  dihedral  CH3  CH  O    H    cos  180.0  2.0  3
+  2  improper  CH3  CH  CH3  O    none
+  3  improper  CH3  CH  O    CH3  none

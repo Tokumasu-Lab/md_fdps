@@ -9,49 +9,16 @@
 #include <random>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
-#include "boltzmann_dist.hpp"
-
-#include "md_fdps_unit.hpp"
-#include "md_fdps_coef_table.hpp"
-#include "md_fdps_atom_class.hpp"
-#include "md_fdps_loading_condition.hpp"
-#include "md_fdps_loading_model.hpp"
+#include "unit.hpp"
+#include "atom_class.hpp"
+#include "md_coef_table.hpp"
+#include "md_intra_pair_table.hpp"
+#include "md_loading_condition.hpp"
+#include "md_loading_model.hpp"
 
 namespace Initialize {
-
-    template <typename Tvec>
-    Tvec rot_x(const Tvec &v, const PS::F64 &r) {
-        Tvec result;
-        PS::F64 sin_tmp = std::sin(r);
-        PS::F64 cos_tmp = std::cos(r);
-        result.x = v.x;
-        result.y = cos_tmp*v.y - sin_tmp*v.z;
-        result.z = sin_tmp*v.y + cos_tmp*v.z;
-        return result;
-    }
-
-    template <typename Tvec>
-    Tvec rot_y(const Tvec &v, const PS::F64 &r) {
-        Tvec result;
-        PS::F64 sin_tmp = std::sin(r);
-        PS::F64 cos_tmp = std::cos(r);
-        result.x = sin_tmp*v.z + cos_tmp*v.x;
-        result.y = v.y;
-        result.z = cos_tmp*v.z - sin_tmp*v.x;
-        return result;
-    }
-
-    template <typename Tvec>
-    Tvec rot_z(const Tvec &v, const PS::F64 &r) {
-        Tvec result;
-        PS::F64 sin_tmp = std::sin(r);
-        PS::F64 cos_tmp = std::cos(r);
-        result.x = cos_tmp*v.x - sin_tmp*v.y;
-        result.y = sin_tmp*v.x + cos_tmp*v.y;
-        result.z = v.z;
-        return result;
-    }
 
     //--- adjast in [0.0,1.0) space
     template <typename Tvec>
@@ -114,15 +81,14 @@ namespace Initialize {
         v.x = dev*blz.gen( PS::F64(dist(rand)) );
 
         //--- direction
-        v = rot_z(v, Unit::pi*PS::F64(dist(rand)) );  // rotate in z-y-z Euler angle
-        v = rot_y(v, Unit::pi*PS::F64(dist(rand)) );
-        v = rot_z(v, Unit::pi*PS::F64(dist(rand)) );
+        v = VEC_EXT::rot_z(v, Unit::pi*PS::F64(dist(rand)) );  // rotate in z-y-z Euler angle
+        v = VEC_EXT::rot_y(v, Unit::pi*PS::F64(dist(rand)) );
+        v = VEC_EXT::rot_z(v, Unit::pi*PS::F64(dist(rand)) );
 
         return v;
     }
 
     template <typename Tpsys, typename Tintralist, typename Tmodel, typename Tbond,
-        //      typename Tchecker,
               typename Trand, typename Tdist,      typename Tblz>
     size_t install_molecule(      Tpsys      &psys,
                                   Tintralist &intra_pair_manager,
@@ -167,9 +133,9 @@ namespace Initialize {
             for(size_t i=0; i<model_template.size(); ++i){
                 PS::F64vec pos_local = Normalize::normPos( model_template.at(i).getPos() );
 
-                pos_local = rot_z(pos_local, rot_1);  // rotate in z-y-z Euler angle
-                pos_local = rot_y(pos_local, rot_2);
-                pos_local = rot_z(pos_local, rot_3);
+                pos_local = VEC_EXT::rot_z(pos_local, rot_1);  // rotate in z-y-z Euler angle
+                pos_local = VEC_EXT::rot_y(pos_local, rot_2);
+                pos_local = VEC_EXT::rot_z(pos_local, rot_3);
 
                 PS::F64vec pos_norm = pos_root + pos_local;
                 pos_norm = periodicAdjustNorm_round(pos_norm);
@@ -261,7 +227,7 @@ namespace Initialize {
             for(PS::S64 num=0; num<System::model_list.at(index).second; ++num){
 
                 #ifdef TEST_MOL_INSTALL
-                    std::cout << " installing " << ENUM::whatis(System::model_list.at(index).first) << std::endl;
+                    std::cout << " installing " << ENUM::what(System::model_list.at(index).first) << std::endl;
                 #endif
 
                 size_t try_count = install_molecule(psys,

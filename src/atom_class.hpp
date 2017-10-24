@@ -6,12 +6,11 @@
 #pragma once
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
-#include "md_ext_normalize.hpp"
-
-#include "md_fdps_unit.hpp"
-#include "md_fdps_enum_model.hpp"
-#include "md_fdps_atom_class_base.hpp"
+#include "unit.hpp"
+#include "md_enum.hpp"
+#include "atom_class_base.hpp"
 
 
 //--- derived force class

@@ -10,8 +10,7 @@ USER_CHARGES
 // (local_id), atom_name, x, y, z, (ignored), (ignored), (ignored), charge
 //      atom_name  [-]                string
 //      x, y, z    [angstrom]         relative position in molecule
-//      charge     [electrom charge]  charge on each atom
-//        separated by space.
+//      charge     [electron charge]  charge on each atom
 //=================================================================================
 @<TRIPOS>ATOM
 1 Ow  0    0    0    O.3 0 **** -0.82
@@ -22,7 +21,6 @@ USER_CHARGES
 //  definition of bond.
 // (bond_id), i_atom, j_atom, (ignored)
 //      i_atom, j_atom  [integer] (using "local_id" in above atom definition.)
-//        separated by space.
 //=================================================================================
 @<TRIPOS>BOND
 1 1 2 1

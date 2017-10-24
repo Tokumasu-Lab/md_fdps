@@ -5,11 +5,7 @@
 //***************************************************************************************
 #pragma once
 
-#include<algorithm>
-#include<cassert>
-
-
-// Cutoff functions  (copy from FDPS-master/sample/c++/p3m/main.cpp)
+//--- Cutoff functions  (copy from FDPS-master/sample/c++/p3m/main.cpp)
 inline PS::F64 S2_pcut(const PS::F64 xi) {
    // This is the potential cutoff function where we used Eq.(8.75)
    // in Hockney & Eastwood (1987).

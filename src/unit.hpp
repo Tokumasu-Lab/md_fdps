@@ -1,12 +1,17 @@
-//***************************************************************************************
-//  This program is the definition of enumulator constant.
-//    This code is used by "md_fdps_main.cpp"
-//***************************************************************************************
+/**************************************************************************************************/
+/**
+* @file  unit.hpp
+* @brief definition of physical constants and normalized parameters.
+*/
+/**************************************************************************************************/
 #pragma once
 
 #include <cmath>
 #include <iostream>
 
+/**
+* @brief definitions of physical constants and normalized parameters.
+*/
 namespace Unit {
 
     //--- fundamental parameters
@@ -32,12 +37,13 @@ namespace Unit {
     static constexpr PS::F64 norm_time   = norm_length/norm_vel;             // [s]
     static constexpr PS::F64 norm_temp   = norm_energy/blz;                  // [K·mol/kcal]
     static constexpr PS::F64 norm_press  = norm_energy/( std::pow(norm_length, 3) );  // [J·mol/kcal·m^3]
-    static constexpr PS::F64 norm_dens   = norm_mass/( std::pow(norm_length, 3 ) );   // [kg/m^3]
+    static constexpr PS::F64 norm_dens   = norm_mass/(   std::pow(norm_length, 3) );  // [kg/m^3]
 
     static constexpr PS::F64 femto_second = 1.e-15;                                                // [s]
     static constexpr PS::F64 coef_coulomb = std::sqrt(ec*ec/(4.0*pi*e0*norm_length*norm_energy));  // [sqrt(kcal/mol)]
 
 
+    //! @brief displaying normalized units.
     void print_unit(){
 		std::cout << " Normarized units:\n"
 		          << "   energy       = " << std::setw(18) << norm_energy  << " [J·mol/kcal]\n"

@@ -10,23 +10,23 @@
 
 //--- user defined headers
 //------ definition of data set
-#include "md_fdps_unit.hpp"
-#include "md_fdps_enum_model.hpp"
-#include "md_fdps_atom_class.hpp"
-#include "md_fdps_coef_table.hpp"
+#include "unit.hpp"
+#include "md_enum.hpp"
+#include "atom_class.hpp"
+#include "md_coef_table.hpp"
 //------ calculate interaction
 #include "ff_intra_force.hpp"
 #include "ff_inter_force.hpp"
 //------ kick & drift
-#include "md_fdps_atom_move.hpp"
+#include "md_atom_move.hpp"
 //------ system observer
-#include "md_fdps_observer.hpp"
+#include "md_observer.hpp"
 //------ external system control
-//#include "md_fdps_ext_sys_control.hpp"
+//#include "md_ext_sys_control.hpp"
 //------ file I/O
-#include "md_fdps_fileIO.hpp"
+#include "md_fileIO.hpp"
 //------ initialize
-#include "md_fdps_initialize.hpp"
+#include "md_initialize.hpp"
 
 
 const PS::S64 n_atom = 2;
@@ -59,6 +59,14 @@ void test_init(Tpsys &psys){
 
     psys[0].setPos( PS::F64vec(0.5) );
     psys[1].setPos( PS::F64vec(0.5) + Normalize::normPos( PS::F64vec(0.05, 0.0, 0.0) ) );
+
+    //--- disable all bond and angle potential
+    for(auto &c_angle : MODEL::coefTable_angle){
+        c_angle.second.form = IntraFuncForm::none;
+    }
+    for(auto &c_torsion : MODEL::coefTable_torsion){
+        c_torsion.second.form = IntraFuncForm::none;
+    }
 
     //--- set loop
     System::setting.nstep_st = 0;
@@ -237,10 +245,11 @@ int main(int argc, char* argv[]) {
             System::loading_molecular_condition("condition_molecule.imp");
 
             for(size_t i=0; i<System::model_list.size(); ++i){
-                MODEL::loading_model_parameter(ENUM::whatis(System::model_list.at(i).first),
+                MODEL::loading_model_parameter(ENUM::what(System::model_list.at(i).first),
                                                System::model_template.at(i),
                                                System::bond_template.at(i),
-                                               MODEL::coefTable_elem,
+                                               MODEL::coefTable_atom,
+                                               MODEL::coefTable_residue,
                                                MODEL::coefTable_bond,
                                                MODEL::coefTable_angle,
                                                MODEL::coefTable_torsion);

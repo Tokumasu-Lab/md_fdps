@@ -1,5 +1,5 @@
 //***************************************************************************************
-//  This program is unit test of LJ interaction.
+//  This program is unit test of angle interaction.
 //***************************************************************************************
 
 #include <particle_simulator.hpp>
@@ -10,26 +10,26 @@
 
 //--- user defined headers
 //------ definition of data set
-#include "md_fdps_unit.hpp"
-#include "md_fdps_enum_model.hpp"
-#include "md_fdps_atom_class.hpp"
-#include "md_fdps_coef_table.hpp"
+#include "unit.hpp"
+#include "md_enum.hpp"
+#include "atom_class.hpp"
+#include "md_coef_table.hpp"
 //------ calculate interaction
 #include "ff_intra_force.hpp"
 #include "ff_inter_force.hpp"
 //------ kick & drift
-#include "md_fdps_atom_move.hpp"
+#include "md_atom_move.hpp"
 //------ system observer
-#include "md_fdps_observer.hpp"
+#include "md_observer.hpp"
 //------ external system control
-//#include "md_fdps_ext_sys_control.hpp"
+//#include "md_ext_sys_control.hpp"
 //------ file I/O
-#include "md_fdps_fileIO.hpp"
+#include "md_fileIO.hpp"
 //------ initialize
-#include "md_fdps_initialize.hpp"
+#include "md_initialize.hpp"
 
 
-const PS::S64 n_atom = 2;
+const PS::S64 n_atom = 3;
 const PS::S64 n_loop = 1000;
 
 template <class Tpsys>
@@ -41,20 +41,36 @@ void test_init(Tpsys &psys){
     MODEL::intra_pair_manager.setAtomNumber(n_atom);
 
     //--- set initial position & parameters
-    //------ for bond test
+    //------ for angle test
     for(PS::S32 i=0; i<n_atom; ++i){
         psys[i].setAtomID(i);
-        psys[i].setAtomType( AtomName::Ar );
-        psys[i].setMolType(  MolName::AA_Ar );
         psys[i].setMolID(i);
         psys[i].setCharge( 0.0 );
-        psys[i].setVDW_R( 0.5*3.81637 );
-        psys[i].setVDW_D( std::sqrt(0.24) );
+        psys[i].setVDW_R( 3.0 );
+        psys[i].setVDW_D( 0.0 );
         psys[i].clear();
     }
+    psys[0].setAtomType( AtomName::Ow );
+    psys[0].setMolType(  MolName::AA_wat_aSPC_Fw );
+    psys[1].setAtomType( AtomName::Hw );
+    psys[1].setMolType(  MolName::AA_wat_aSPC_Fw );
+    psys[2].setAtomType( AtomName::Hw );
+    psys[2].setMolType(  MolName::AA_wat_aSPC_Fw );
+
+    MODEL::intra_pair_manager.addBond(0, 1);
+    MODEL::intra_pair_manager.addBond(0, 2);
 
     psys[0].setPos( PS::F64vec(0.5) );
-    psys[1].setPos( PS::F64vec(0.5) + PS::F64vec(0.001, 0.0, 0.0) );
+    psys[1].setPos( PS::F64vec(0.5) + Normalize::normPos( PS::F64vec(0.995, 0.0, 0.0) ) );
+    psys[2].setPos( PS::F64vec(0.5) + VEC_EXT::rot_y( Normalize::normPos( PS::F64vec(0.995, 0.0, 0.0) ), Unit::pi*112.5/180.0 ) );
+
+    //--- disable all bond and torsion potential
+    for(auto &c_bond : MODEL::coefTable_bond){
+        c_bond.second.form = IntraFuncForm::none;
+    }
+    for(auto &c_angle : MODEL::coefTable_torsion){
+        c_angle.second.form = IntraFuncForm::none;
+    }
 
     //--- set loop
     System::setting.nstep_st = 0;
@@ -65,13 +81,16 @@ template <class Tpsys>
 void test_move(Tpsys &psys){
 
     for(PS::S64 i=0; i<psys.getNumberOfParticleLocal(); ++i){
-        PS::F64vec pos_tmp = psys[i].getPos();
+        PS::F64vec pos_tmp = Normalize::realPos( psys[i].getPos() );
 
-        if(psys[i].getAtomID() == 1){
-            //--- move for 2-body potential test (LJ, coulomb, bond)
-            pos_tmp.x += 0.998/PS::F64(n_loop);         //  setting test distance range (normalized)
+        if(psys[i].getAtomID() == 2){
+            //--- move for angle test
+            PS::F64vec pos_local = pos_tmp - Normalize::realPos( PS::F64vec(0.5) );
+                       pos_local = VEC_EXT::rot_y(pos_local, 2.0*Unit::pi/PS::F64(n_loop));
+            pos_tmp = Normalize::realPos( PS::F64vec(0.5) ) + pos_local;
         }
 
+        pos_tmp = Normalize::normPos(pos_tmp);
         pos_tmp = Normalize::periodicAdjustNorm(pos_tmp);
         psys[i].setPos(pos_tmp);
     }
@@ -106,13 +125,12 @@ void test_record(const Tpsys    &psys,
                pos_tmp = Normalize::realPos( pos_tmp - PS::F64vec(0.5) );
 
     oss << std::setw(10) << record_count;
-    oss << std::setw(15) << std::setprecision(7) << pos_tmp.x;
-    oss << std::setw(15) << std::setprecision(7) << pos_tmp.y;
-    oss << std::setw(15) << std::setprecision(7) << pos_tmp.z;
-    oss << std::setw(15) << std::setprecision(7) << buf.getPotLJ();
-    oss << std::setw(15) << std::setprecision(7) << buf.getForceLJ().x;
-    oss << std::setw(15) << std::setprecision(7) << buf.getForceLJ().y;
-    oss << std::setw(15) << std::setprecision(7) << buf.getForceLJ().z;
+    //--- for Intra force
+    oss << std::setw(15) << std::setprecision(7) << PS::F64(record_count)*360.0/PS::F64(n_loop);  // 1 rotate
+    oss << std::setw(15) << std::setprecision(7) << buf.getPotAngle();
+    oss << std::setw(15) << std::setprecision(7) << buf.getForceIntra().x;
+    oss << std::setw(15) << std::setprecision(7) << buf.getForceIntra().y;
+    oss << std::setw(15) << std::setprecision(7) << buf.getForceIntra().z;
     oss << "\n";
 
     printer.print(oss.str());
@@ -214,9 +232,9 @@ int main(int argc, char* argv[]) {
 
         //--- data logger
         Observer::Energy      eng;
-                              eng.file_init("test_force_LJ_eng.dat");
+                              eng.file_init("test_force_angle_eng.dat");
         Observer::FilePrinter printer;
-                              printer.file_init("test_force_LJ_log.dat", 0);
+                              printer.file_init("test_force_angle_log.dat", 0);
 
         //--- initialize
         atom.initialize();
@@ -230,10 +248,11 @@ int main(int argc, char* argv[]) {
             System::loading_molecular_condition("condition_molecule.imp");
 
             for(size_t i=0; i<System::model_list.size(); ++i){
-                MODEL::loading_model_parameter(ENUM::whatis(System::model_list.at(i).first),
+                MODEL::loading_model_parameter(ENUM::what(System::model_list.at(i).first),
                                                System::model_template.at(i),
                                                System::bond_template.at(i),
-                                               MODEL::coefTable_elem,
+                                               MODEL::coefTable_atom,
+                                               MODEL::coefTable_residue,
                                                MODEL::coefTable_bond,
                                                MODEL::coefTable_angle,
                                                MODEL::coefTable_torsion);

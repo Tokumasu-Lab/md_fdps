@@ -1,6 +1,9 @@
-//***************************************************************************************
-//  This program is loading model parameter function.
-//***************************************************************************************
+/**************************************************************************************************/
+/**
+* @file  boltzmann_dist.hpp
+* @brief normarized boltzmann distribution generator.
+*/
+/**************************************************************************************************/
 #pragma once
 
 #include <vector>
@@ -10,10 +13,13 @@
 
 namespace MD_EXT {
 
+    /**
+    * @brief normarized boltzmann distribution generator.
+    */
     class boltzmann_dist {
     private:
-        PS::F64 range_min = 0.0;
-        PS::F64 range_max = 4.0;
+        PS::F64 range_min;
+        PS::F64 range_max;
 
         std::vector<PS::F64> table;
         PS::F64              dv;
@@ -24,7 +30,10 @@ namespace MD_EXT {
         }
 
     public:
-        //--- initialize function
+
+        /**
+        * @brief initializer of internal table.
+        */
         void init(const PS::F64 range_min,
                   const PS::F64 range_max,
                   const size_t  resolution,
@@ -58,14 +67,36 @@ namespace MD_EXT {
             this->table.emplace_back(1.0);
         }
 
-        //--- constructor
+        /**
+        * @brief presetted constructor.
+        * @details range_min = 0.0
+        * @details range_max = 4.0
+        * @details resolution = 1023
+        * @details n_integral = 512
+        */
         boltzmann_dist(){
             this->init(0.0, 4.0, 1023, 512);
         }
+
+        /**
+        * @brief constructor with presetted interanal table size.
+        * @param[in] range_min
+        * @param[in] range_max
+        * @details resolution = 1023
+        * @details n_integral = 512
+        */
         boltzmann_dist(const PS::F64 range_min,
                        const PS::F64 range_max){
             this->init(range_min, range_max, 1023, 512);
         }
+
+        /**
+        * @brief constructor.
+        * @param[in] range_min
+        * @param[in] range_max
+        * @param[in] resolution
+        * @param[in] n_integral
+        */
         boltzmann_dist(const PS::F64 range_min,
                        const PS::F64 range_max,
                        const PS::S32 resolution,
@@ -74,6 +105,11 @@ namespace MD_EXT {
         }
 
 
+        /**
+        * @brief generate a value of normalized boltzmann distribution.
+        * @param[in] r must be in range [0.0, 1.0).
+        * @return result in range [range_min, range_max].
+        */
         PS::F64 gen(const PS::F64 r){
             //--- input range = [0.0, 1.0)
             assert(r >= 0.0 && r < 1.0);
@@ -89,8 +125,19 @@ namespace MD_EXT {
             }
             return result;
         }
+        /**
+        * @brief wrapper for boltzmann_dist::gen()
+        * @param[in] r must be in range [0.0, 1.0).
+        * @return result in range [range_min, range_max].
+        */
         PS::F64 operator () (const PS::F64 r){ return this->gen(r); }
 
+        /**
+        * @brief output internal table. cumulative distribution function of gaussian.
+        * @param[out] dist internal table.
+        * @param[out] range_min begin value of table.
+        * @param[out] dv interval of table.
+        */
         void get_cumulative_dist(std::vector<PS::F64> &dist,
                                  PS::F64              &range_min,
                                  PS::F64              &dv       ){
