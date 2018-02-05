@@ -8,13 +8,14 @@
 - [FFTw のコンパイルとインストール](#FFTwのコンパイルとインストール)
 - [おまけ1：　FDPSのParticleMesh機能拡張のコンパイル](#FDPSのparticle_mesh拡張機能のコンパイル)
 - [おまけ2：　複数のGCCバージョンの切り替え](#複数のgccバージョンの切り替え)
+- [おまけ3：　Google C++ test framework (google test)のインストール](#gtestのインストール)
 
 <a id="md_fdps_env"></a>
 <a href="#md_fdps_env"></a>
 ## md_fdpsの実行に必要な環境について
 FDPS (Framework for Developing Particle Simulator) を使用して分子動力学プログラムを作成するため，FDPSを利用したプログラムをコンパイルするために必要な環境を構築する．
 
-- [おまけ3：　Google C++ test framework (google test)のインストール](#gtestのインストール)
+FDPS ver4.0b 向け  
 参考：
 - https://github.com/FDPS/FDPS
 - http://www.jmlab.jp/?p=530
@@ -123,10 +124,10 @@ $ ../gcc-6.3.0/configure --prefix=$HOME/local/gcc-6.3.0
 --with-local-prefix=$HOME/local/libgcc63  
 --enable-checking=release --disable-multilib  
 --enable-languages=c,c++,fortran  
-```bash
+```
 
 無事にmakefileが生成されたら，コンパイルおよびインストールを行う．
-```
+```bash
 $ make
 $ make install
 ```
@@ -224,9 +225,9 @@ $ ../fftw-3.3.6/configure --prefix=$HOME/local/fftw-3.3.6
 --enable-static --enable-shared  
 --enable-sse2 --enable-avx --with-g77-wrappers  
 --enable-float --enable-sse  
-```bash
-コンパイルおよびインストール
 ```
+コンパイルおよびインストール
+```bash
 $ make
 $ make install
 ```
@@ -268,9 +269,9 @@ GCC, OpenMPIと同様に `.bashrc` に下記のように追記し，パスを登
 ```bash
 target=$HOME"/local/fftw-3.3.6"      # prefixで指定したFFTwのフォルダ名
 $ export LD_LIBRARY_PATH=${target}/lib:$LD_LIBRARY_PATH
-```bash
-FFTwを使用するプログラムをコンパイルしてできた実行ファイル(例えば a.out )にlddコマンドを使ってFFTwが存在しているかどうかを確認できる．
 ```
+FFTwを使用するプログラムをコンパイルしてできた実行ファイル(例えば a.out )にlddコマンドを使ってFFTwが存在しているかどうかを確認できる．
+```bash
 $ ldd a.out
 ```
 
