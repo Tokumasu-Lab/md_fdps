@@ -5,9 +5,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <vector>
 #include <string>
 #include <tuple>
 #include <cassert>
@@ -18,7 +15,8 @@
 
 #include "atom_class.hpp"
 #include "md_coef_table.hpp"
-#include "md_ext_sys_control.hpp"
+#include "md_setting.hpp"
+#include "ext_sys_control.hpp"
 
 
 //--- file loading mode
@@ -39,29 +37,29 @@ enum class CONDITION_LOAD_MODE : int {
 namespace ENUM {
 
     static const std::map<std::string, CONDITION_LOAD_MODE> table_str_CONDITION_LOAD_MODE{
-        {"time_step"       , CONDITION_LOAD_MODE::time_step        },
-        {"tree"            , CONDITION_LOAD_MODE::tree             },
-        {"cut_off"         , CONDITION_LOAD_MODE::cut_off          },
-        {"ext_sys"         , CONDITION_LOAD_MODE::ext_sys          },
-        {"ext_sys_sequence", CONDITION_LOAD_MODE::ext_sys_sequence },
-        {"record"          , CONDITION_LOAD_MODE::record           },
+        {"TIMESTEP"        , CONDITION_LOAD_MODE::time_step        },
+        {"TREE"            , CONDITION_LOAD_MODE::tree             },
+        {"CUT_OFF"         , CONDITION_LOAD_MODE::cut_off          },
+        {"EXT_SYS"         , CONDITION_LOAD_MODE::ext_sys          },
+        {"EXT_SYS_SEQUENCE", CONDITION_LOAD_MODE::ext_sys_sequence },
+        {"RECORD"          , CONDITION_LOAD_MODE::record           },
 
-        {"molecule"        , CONDITION_LOAD_MODE::molecule         },
-        {"box"             , CONDITION_LOAD_MODE::box              },
-        {"ex_radius"       , CONDITION_LOAD_MODE::ex_radius        },
+        {"MOLECULE"        , CONDITION_LOAD_MODE::molecule         },
+        {"BOX"             , CONDITION_LOAD_MODE::box              },
+        {"EX_RADIUS"       , CONDITION_LOAD_MODE::ex_radius        },
     };
 
     static const std::map<CONDITION_LOAD_MODE, std::string> table_CONDITION_LOAD_MODE_str{
-        {CONDITION_LOAD_MODE::time_step       , "time_step"        },
-        {CONDITION_LOAD_MODE::tree            , "tree"             },
-        {CONDITION_LOAD_MODE::cut_off         , "cut_off"          },
-        {CONDITION_LOAD_MODE::ext_sys         , "ext_sys"          },
-        {CONDITION_LOAD_MODE::ext_sys_sequence, "ext_sys_sequence" },
-        {CONDITION_LOAD_MODE::record          , "record"           },
+        {CONDITION_LOAD_MODE::time_step       , "TIMESTEP"         },
+        {CONDITION_LOAD_MODE::tree            , "TREE"             },
+        {CONDITION_LOAD_MODE::cut_off         , "CUT_OFF"          },
+        {CONDITION_LOAD_MODE::ext_sys         , "EXT_SYS"          },
+        {CONDITION_LOAD_MODE::ext_sys_sequence, "EXT_SYS_SEQUENCE" },
+        {CONDITION_LOAD_MODE::record          , "RECORD"           },
 
-        {CONDITION_LOAD_MODE::molecule        , "molecule"         },
-        {CONDITION_LOAD_MODE::box             , "box"              },
-        {CONDITION_LOAD_MODE::ex_radius       , "ex_radius"        },
+        {CONDITION_LOAD_MODE::molecule        , "MOLECULE"         },
+        {CONDITION_LOAD_MODE::box             , "BOX"              },
+        {CONDITION_LOAD_MODE::ex_radius       , "EX_RADIUS"        },
     };
 
     CONDITION_LOAD_MODE which_CONDITION_LOAD_MODE(const std::string &str){
@@ -93,60 +91,6 @@ inline std::ostream& operator << (std::ostream& s, const CONDITION_LOAD_MODE &e)
 
 namespace System {
 
-    //--- setting data class: DO NOT contain pointer or container.
-    class setting_parameter{
-    public:
-        //--- for time step
-        PS::S64 istep    = -1;
-        PS::S64 nstep_st = -1;
-        PS::S64 nstep_ed = -1;
-        PS::F64 dt       = 0.0;
-
-        //--- for Tree
-        PS::S32 n_leaf_limit  = -1;
-        PS::F64 coef_ema      = -1.0;
-        PS::F64 theta         = -1.0;
-        PS::S32 n_group_limit = -1;
-        PS::S32 cycle_dinfo   = -1;
-
-        //--- for cut_off radius
-        PS::F64 cut_off_LJ    = -1.0;
-
-        //--- for installing molecule at initialize
-        PS::F64 ex_radius = -1.0;
-        PS::S32 try_limit = -1;
-
-        //--- for recording data
-        PS::S64 pos_interval    = -1;
-        PS::S64 pos_start       = -1;
-        PS::S64 resume_interval = -1;
-        PS::S64 resume_start    = -1;
-        PS::S64 pdb_interval    = -1;
-        PS::S64 pdb_start       = -1;
-
-        PS::S64 eng_interval  = -1;
-        PS::S64 eng_start     = -1;
-        PS::S64 prop_interval = -1;
-        PS::S64 prop_start    = -1;
-    };
-    setting_parameter setting;
-
-    //--- for initialize particle
-    std::vector<std::pair<MolName, PS::S64>>        model_list;
-    std::vector<std::vector<Atom_FP>>               model_template;
-    std::vector<std::vector<std::vector<PS::S64>>>  bond_template;
-
-    //--- sysc settings in MPI processes
-    void broadcast_setting(const PS::S32 root = 0){
-        COMM_TOOL::broadcast(setting, root);
-
-        Normalize::broadcast_boxSize(root);
-
-        COMM_TOOL::broadcast(model_list,     root);
-        COMM_TOOL::broadcast(model_template, root);
-        COMM_TOOL::broadcast(bond_template,  root);
-    }
-
     //--- load settings from file
     void loading_sequence_condition(const std::string         &file_name,
                                           EXT_SYS::Sequence   &sequence,
@@ -172,18 +116,11 @@ namespace System {
                str_list[0].substr(0,2) == "//") continue;
 
             //--- header information
-            if(       str_list[0] == "@<CONDITION>TIMESTEP"){
-                mode = CONDITION_LOAD_MODE::time_step;
-            } else if(str_list[0] == "@<CONDITION>TREE"){
-                mode = CONDITION_LOAD_MODE::tree;
-            } else if(str_list[0] == "@<CONDITION>CUT_OFF"){
-                mode = CONDITION_LOAD_MODE::cut_off;
-            } else if(str_list[0] == "@<CONDITION>EXT_SYS"){
-                mode = CONDITION_LOAD_MODE::ext_sys;
-            } else if(str_list[0] == "@<CONDITION>EXT_SYS_SEQUENCE"){
-                mode = CONDITION_LOAD_MODE::ext_sys_sequence;
-            } else if(str_list[0] == "@<CONDITION>RECORD"){
-                mode = CONDITION_LOAD_MODE::record;
+            std::string mark     = "@<CONDITION>";
+            size_t      mark_len = mark.size();
+            if( str_list[0].substr(0,mark_len) == mark ){
+                mode = ENUM::which_CONDITION_LOAD_MODE( str_list[0].substr(mark_len) );
+                continue;
             }
 
             //--- loading data
@@ -191,30 +128,29 @@ namespace System {
                 case CONDITION_LOAD_MODE::time_step:
                     if( str_list.size() < 2) continue;
 
-                    if( str_list[0] == "t_start"){
-                        System::setting.nstep_st = std::stoi(str_list[1]);
-                        System::setting.istep    = System::setting.nstep_st;
+                    if( str_list[0] == "i_start"){
+                        System::profile.nstep_st = std::stoi(str_list[1]);
+                        System::profile.istep    = System::profile.nstep_st;
                     }
-                    if( str_list[0] == "t_end")   System::setting.nstep_ed = std::stoi(str_list[1]);
-                    if( str_list[0] == "dt")      System::setting.dt       = std::stof(str_list[1])
-                                                                            *Unit::femto_second
-                                                                            /Unit::norm_time;
+                    if( str_list[0] == "i_end") System::profile.nstep_ed = std::stoi(str_list[1]);
+                    if( str_list[0] == "dt")    System::profile.dt       = Unit::to_norm_time( std::stof(str_list[1]) );
                 break;
 
                 case CONDITION_LOAD_MODE::tree:
                     if( str_list.size() < 2) continue;
 
-                    if( str_list[0] == "n_leaf_limit")  System::setting.n_leaf_limit  = std::stoi(str_list[1]);
-                    if( str_list[0] == "coef_ema")      System::setting.coef_ema      = std::stof(str_list[1]);
-                    if( str_list[0] == "theta")         System::setting.theta         = std::stof(str_list[1]);
-                    if( str_list[0] == "n_group_limit") System::setting.n_group_limit = std::stoi(str_list[1]);
-                    if( str_list[0] == "cycle_dinfo")   System::setting.cycle_dinfo   = std::stoi(str_list[1]);
+                    if( str_list[0] == "n_leaf_limit")  System::profile.n_leaf_limit  = std::stoi(str_list[1]);
+                    if( str_list[0] == "coef_ema")      System::profile.coef_ema      = std::stof(str_list[1]);
+                    if( str_list[0] == "theta")         System::profile.theta         = std::stof(str_list[1]);
+                    if( str_list[0] == "n_group_limit") System::profile.n_group_limit = std::stoi(str_list[1]);
+                    if( str_list[0] == "cycle_dinfo")   System::profile.cycle_dinfo   = std::stoi(str_list[1]);
                 break;
 
                 case CONDITION_LOAD_MODE::cut_off:
                     if( str_list.size() < 2) continue;
 
-                    if( str_list[0] == "LJ")    System::setting.cut_off_LJ    = std::stof(str_list[1]);
+                    if( str_list[0] == "LJ")    System::profile.cut_off_LJ    = std::stof(str_list[1]);
+                    if( str_list[0] == "intra") System::profile.cut_off_intra = std::stof(str_list[1]);
                 break;
 
                 case CONDITION_LOAD_MODE::ext_sys:
@@ -249,17 +185,17 @@ namespace System {
                 case CONDITION_LOAD_MODE::record:
                     if( str_list.size() < 2) continue;
 
-                    if( str_list[0] == "pos_interval")    System::setting.pos_interval    = stoi(str_list[1]);
-                    if( str_list[0] == "pos_start")       System::setting.pos_start       = stoi(str_list[1]);
-                    if( str_list[0] == "resume_interval") System::setting.resume_interval = stoi(str_list[1]);
-                    if( str_list[0] == "resume_start")    System::setting.resume_start    = stoi(str_list[1]);
-                    if( str_list[0] == "pdb_interval")    System::setting.pdb_interval    = stoi(str_list[1]);
-                    if( str_list[0] == "pdb_start")       System::setting.pdb_start       = stoi(str_list[1]);
+                    if( str_list[0] == "pos_interval")    System::profile.pos_interval    = stoi(str_list[1]);
+                    if( str_list[0] == "pos_start")       System::profile.pos_start       = stoi(str_list[1]);
+                    if( str_list[0] == "resume_interval") System::profile.resume_interval = stoi(str_list[1]);
+                    if( str_list[0] == "resume_start")    System::profile.resume_start    = stoi(str_list[1]);
+                    if( str_list[0] == "pdb_interval")    System::profile.pdb_interval    = stoi(str_list[1]);
+                    if( str_list[0] == "pdb_start")       System::profile.pdb_start       = stoi(str_list[1]);
 
-                    if( str_list[0] == "eng_interval")  System::setting.eng_interval  = stoi(str_list[1]);
-                    if( str_list[0] == "eng_start")     System::setting.eng_start     = stoi(str_list[1]);
-                    if( str_list[0] == "prop_interval") System::setting.prop_interval = stoi(str_list[1]);
-                    if( str_list[0] == "prop_start")    System::setting.prop_start    = stoi(str_list[1]);
+                    if( str_list[0] == "eng_interval")  System::profile.eng_interval  = stoi(str_list[1]);
+                    if( str_list[0] == "eng_start")     System::profile.eng_start     = stoi(str_list[1]);
+                    if( str_list[0] == "prop_interval") System::profile.prop_interval = stoi(str_list[1]);
+                    if( str_list[0] == "prop_start")    System::profile.prop_start    = stoi(str_list[1]);
                 break;
 
                 default:
@@ -294,12 +230,11 @@ namespace System {
                str_list[0].substr(0,2) == "//") continue;
 
             //--- header information
-            if(       str_list[0] == "@<CONDITION>MOLECULE"){
-                mode = CONDITION_LOAD_MODE::molecule;
-            } else if(str_list[0] == "@<CONDITION>BOX"){
-                mode = CONDITION_LOAD_MODE::box;
-            } else if(str_list[0] == "@<CONDITION>EX_RADIUS"){
-                mode = CONDITION_LOAD_MODE::ex_radius;
+            std::string mark     = "@<CONDITION>";
+            size_t      mark_len = mark.size();
+            if( str_list[0].substr(0,mark_len) == mark ){
+                mode = ENUM::which_CONDITION_LOAD_MODE( str_list[0].substr(mark_len) );
+                continue;
             }
 
             //--- loading data
@@ -322,138 +257,17 @@ namespace System {
                 case CONDITION_LOAD_MODE::ex_radius:
                     if( str_list.size() < 2) continue;
 
-                    System::setting.ex_radius = std::stof(str_list[0]);
-                    System::setting.try_limit = std::stoi(str_list[1]);
+                    System::profile.ex_radius = std::stof(str_list[0]);
+                    System::profile.try_limit = std::stoi(str_list[1]);
                 break;
 
                 default:
                     std::cerr << "  file: " << file_name << std::endl;
-                    throw std::invalid_argument("undefined loading mode.");
+                    throw std::invalid_argument("undefined loading mode: " + ENUM::what(mode));
             }
         }
         //--- reach EOF
 
-        //--- allocate model template vector
-        model_template.resize(model_list.size());
-        bond_template.resize(model_list.size());
     }
 
-    //--- display system settings
-    void print_setting(){
-        std::ostringstream oss;
-
-        oss << "system conditions:\n";
-        oss << "  Time steps:\n";
-        oss << "    istep    = " << setting.istep    << "\n";
-        oss << "    nstep_st = " << setting.nstep_st << "\n";
-        oss << "    nstep_ed = " << setting.nstep_ed << "\n";
-        oss << "    dt       = " << setting.dt       << "\n";
-        oss << "             = " << setting.dt/Unit::femto_second*Unit::norm_time << " [fs]\n";
-        oss << "\n";
-
-        oss << "  Tree settings:\n";
-        oss << "    n_leaf_limit  = " << setting.n_leaf_limit  << "\n";
-        oss << "    coef_ema      = " << setting.coef_ema      << "\n";
-        oss << "    theta         = " << setting.theta         << "\n";
-        oss << "    n_group_limit = " << setting.n_group_limit << "\n";
-        oss << "    cycle_dinfo   = " << setting.cycle_dinfo   << "\n";
-        oss << "\n";
-
-        oss << "  Cut_off settings:\n";
-        oss << "    cut_off_LJ      = " << std::setw(9) << std::setprecision(7) << setting.cut_off_LJ    << " [angstrom]\n";
-        oss << "    cut_off_coulomb :  fixed as " << Normalize::normCutOff_PM() << " at normalized space.";
-        oss << "\n";
-
-        oss << "  Init molecule settings:\n";
-        oss << "    box       = (" << Normalize::getBoxSize().x
-            << ", "                << Normalize::getBoxSize().y
-            << ", "                << Normalize::getBoxSize().z << ") [angstrom]\n";
-        oss << "    ex_radius = "  << std::setw(9) << std::setprecision(7) << setting.ex_radius << " [angstrom]\n";
-        oss << "    try_limit = "  << std::setw(9) <<                         setting.try_limit << " [times]\n";
-        oss << "\n";
-
-        oss << "model conditions:\n";
-        if(System::model_list.size() != 0){
-            for(auto m : System::model_list){
-                oss << "    model_name = " << m.first  << "\n";
-                oss << "    n_molecule = " << m.second << "\n";
-                oss << "\n";
-            }
-        } else {
-            oss << "    free.\n";
-            oss << "\n";
-        }
-
-        oss << "recording conditions:\n";
-        oss << "              " << std::setw(15) << "start    " << " | "
-                                << std::setw(15) << "interval  \n";
-        oss << "    pos     : " << std::setw(15) << setting.pos_start       << " | "
-                                << std::setw(15) << setting.pos_interval    << "\n";
-        oss << "    resume  : " << std::setw(15) << setting.resume_start    << " | "
-                                << std::setw(15) << setting.resume_interval << "\n";
-        oss << "    pdb     : " << std::setw(15) << setting.pdb_start       << " | "
-                                << std::setw(15) << setting.pdb_interval    << "\n";
-        oss << "\n";
-        oss << "    energy  : " << std::setw(15) << setting.eng_start     << " | "
-                                << std::setw(15) << setting.eng_interval  << "\n";
-        oss << "    property: " << std::setw(15) << setting.prop_start    << " | "
-                                << std::setw(15) << setting.prop_interval << "\n";
-        oss << "\n";
-
-        //--- output
-        std::cout << oss.str() << std::flush;
-    }
-
-
-
-    //--- input setting to dinfo
-    template<class Tdinfo>
-    void InitDinfo(Tdinfo &dinfo){
-        dinfo.initialize(setting.coef_ema);
-        dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
-        dinfo.setPosRootDomain(PS::F32vec{0.0, 0.0, 0.0}, PS::F32vec{1.0, 1.0, 1.0});  // fixed size for using PS::ParticleMesh
-    }
-
-    //--- input setting to tree
-    template<class Ttree>
-    void InitTree(const size_t &n_ptcl,
-                        Ttree   &tree){
-        tree.initialize(n_ptcl,
-                        setting.theta,
-                        setting.n_leaf_limit,
-                        setting.n_group_limit);
-    }
-
-    //--- time step interface
-    void StepNext(){ setting.istep++; }
-    PS::S64 getIstep(){ return setting.istep; }
-
-    //--- dinfo timing
-    bool isDinfoUpdate(){
-        assert(setting.cycle_dinfo > 0);
-        return ( ((setting.istep - setting.nstep_st) % setting.cycle_dinfo) == 0 );
-    }
-
-    //--- judge continue lopp or not
-    bool isLoopContinue(){
-        assert(setting.istep    >= 0);
-        assert(setting.nstep_ed >= 0);
-        return ( setting.istep <= setting.nstep_ed );
-    }
-
-    //--- getter
-    PS::S64 get_istep(){
-        assert(setting.istep >= 0);
-        return setting.istep;
-    }
-    PS::F64 get_dt() {
-        assert(setting.dt > 0.0);
-        return setting.dt;
-    }
-    PS::F64 get_cutoff_LJ()    { return setting.cut_off_LJ;    }
-
-    PS::S64 get_eng_start()    { return setting.eng_start;     }
-    PS::S64 get_prop_start()   { return setting.prop_start;    }
-    PS::S64 get_eng_interval() { return setting.eng_interval;  }
-    PS::S64 get_prop_interval(){ return setting.prop_interval; }
 }

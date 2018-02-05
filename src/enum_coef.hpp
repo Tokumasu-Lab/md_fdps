@@ -9,11 +9,13 @@
 
 //--- enum indicator for intramolecular interaction
 enum class IntraFuncForm : int {
+    none,
+
     harmonic,
     anharmonic,
 
-    none,
     cos,
+    OPLS_3,
 };
 
 enum class TorsionShape : int {
@@ -31,6 +33,7 @@ namespace ENUM {
         {"harmonic"     , IntraFuncForm::harmonic    },
         {"anharmonic"   , IntraFuncForm::anharmonic  },
         {"cos"          , IntraFuncForm::cos         },
+        {"OPLS_3"       , IntraFuncForm::OPLS_3      },
     };
 
     static const std::map<IntraFuncForm, std::string> table_IntraFuncForm_str{
@@ -38,6 +41,7 @@ namespace ENUM {
         {IntraFuncForm::harmonic    , "harmonic"     },
         {IntraFuncForm::anharmonic  , "anharmonic"   },
         {IntraFuncForm::cos         , "cos"          },
+        {IntraFuncForm::OPLS_3      , "OPLS_3"       },
     };
 
     IntraFuncForm which_IntraFuncForm(const std::string &str){

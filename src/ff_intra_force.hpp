@@ -1,7 +1,5 @@
 //***************************************************************************************
-//  This program is the intramolecular force calculation for "md_fdps_main.cpp"
-//    This code is using the Framework for Developing Particle Simulator (FDPS).
-//    https://github.com/FDPS
+//  This is high level function for intramolecular force calculation.
 //***************************************************************************************
 #pragma once
 
@@ -11,247 +9,258 @@
 #include <molecular_dynamics_ext.hpp>
 
 #include "md_coef_table.hpp"
-#include "md_intra_pair_table.hpp"
 #include "ff_intra_force_func.hpp"
 
 
-template<class Tepi, class Tepj,
-         class Ttable, class Tpair_list,
-         class Tforce>
-void calcForceIntra_IA(const Tepi       &epi,
-                       const Tepj       *ep_j,
-                       const Ttable     &ID_table,
-                       const Tpair_list &intra_pair_list,
-                             Tforce     &force_IA        ){
+namespace FORCE {
 
-    //--- reference of intra pair table
-    const auto& bond_list     = intra_pair_list.bond_list.at(epi.getAtomID());
-    const auto& angle_list    = intra_pair_list.angle_list.at(epi.getAtomID());
-    const auto& dihedral_list = intra_pair_list.dihedral_list.at(epi.getAtomID());
-    const auto& improper_list = intra_pair_list.improper_list.at(epi.getAtomID());
+    template<class Tepi, class Ttree,
+             class Tforce>
+    void calcForceIntra_IA(const Tepi   &ep_i,
+                                 Ttree  &tree,
+                                 Tforce &force_IA){
 
-    //--- bond potential
-    for(size_t i=0; i<bond_list.size(); ++i){
-        PS::S64 id_j    = bond_list.at(i);
-        PS::S64 index_j = ID_table.find( id_j, epi.getPos() );
+        //--- bond potential
+        for(const auto& id_j : ep_i.bond){
+            const auto* ptr_j = tree.getEpjFromId(id_j);
+            IntraPair::check_nullptr_ptcl(ptr_j, ep_i.getAtomID(), id_j);
 
-        MODEL::CoefBond bond_prm;
-        MODEL::KeyBond  key_bond = std::make_tuple(epi.getMolType(),
-                                                   epi.getAtomType(),
-                                                   ep_j[index_j].getAtomType());
-        try{
-            bond_prm = MODEL::coefTable_bond.at(key_bond);
+            MODEL::KeyBond  key_bond = std::make_tuple(ep_i.getMolType(),
+                                                       ep_i.getAtomType(),
+                                                       (*ptr_j).getAtomType());
+
+            if(MODEL::coef_table.bond.count(key_bond) != 1){
+                std::ostringstream oss;
+                oss << "key_bond = " << ENUM::what(key_bond) << " is not defined in MODEL::coef_table.bond." << "\n";
+                throw std::invalid_argument(oss.str());
+            }
+
+            const auto bond_prm = MODEL::coef_table.bond.at(key_bond);
+            switch (bond_prm.form) {
+                case IntraFuncForm::none:
+                    //--- free potential
+                    continue;
+                break;
+
+                case IntraFuncForm::anharmonic:
+                    calcBondForce_anharmonic_IJ(Normalize::realPos(ep_i.getPos()),
+                                                Normalize::realPos((*ptr_j).getPos()),
+                                                bond_prm,
+                                                force_IA);
+                break;
+
+                case IntraFuncForm::harmonic:
+                    calcBondForce_harmonic_IJ(Normalize::realPos(ep_i.getPos()),
+                                              Normalize::realPos((*ptr_j).getPos()),
+                                              bond_prm,
+                                              force_IA);
+                break;
+
+                default:
+                    throw std::invalid_argument("undefined function form: " + ENUM::what(bond_prm.form) + " at bond force.");
+            }
         }
-        catch(std::out_of_range err){
-            std::cerr << "key_bond = " << ENUM::what(key_bond) << " is not defined." << std::endl;
-            throw;
+
+        //--- angle potential
+        for(const auto& angle_set : ep_i.angle_list()){
+            const auto id_i   = std::get<0>(angle_set);
+            const auto id_j   = std::get<1>(angle_set);
+            const auto id_k   = std::get<2>(angle_set);
+            const auto id_tgt = ep_i.getAtomID();
+
+            const auto* ptr_i = tree.getEpjFromId(id_i);
+            const auto* ptr_j = tree.getEpjFromId(id_j);
+            const auto* ptr_k = tree.getEpjFromId(id_k);
+
+            IntraPair::check_nullptr_ptcl(ptr_i, ep_i.getAtomID(), id_i);
+            IntraPair::check_nullptr_ptcl(ptr_j, ep_i.getAtomID(), id_j);
+            IntraPair::check_nullptr_ptcl(ptr_k, ep_i.getAtomID(), id_k);
+
+            MODEL::KeyAngle  key_angle = std::make_tuple(ep_i.getMolType(),
+                                                         (*ptr_i).getAtomType(),
+                                                         (*ptr_j).getAtomType(),
+                                                         (*ptr_k).getAtomType() );
+
+            if(MODEL::coef_table.angle.count(key_angle) != 1){
+                std::ostringstream oss;
+                oss << "key_angle = " << ENUM::what(key_angle) << " is not defined in MODEL::coef_table.angle." << "\n";
+                throw std::invalid_argument(oss.str());
+            }
+
+            const auto angle_prm = MODEL::coef_table.angle.at(key_angle);
+            switch (angle_prm.form){
+                case IntraFuncForm::none:
+                    //--- free potential
+                    continue;
+                break;
+
+                case IntraFuncForm::harmonic:
+                    calcAngleForce_harmonic_IJK(Normalize::realPos( (*ptr_i).getPos() ),
+                                                Normalize::realPos( (*ptr_j).getPos() ),
+                                                Normalize::realPos( (*ptr_k).getPos() ),
+                                                id_i, id_j, id_k,
+                                                id_tgt, angle_prm,
+                                                force_IA);
+                break;
+
+                default:
+                    throw std::invalid_argument("undefined function form: " + ENUM::what(angle_prm.form) + " at angle force");
+            }
         }
 
-        switch (bond_prm.form) {
-            case IntraFuncForm::none:
-                //--- free potential
-                continue;
-            break;
+        //--- dihedral torsion potential
+        for(const auto& dihedral_set : ep_i.dihedral_list()){
+            const auto id_i   = std::get<0>(dihedral_set);
+            const auto id_j   = std::get<1>(dihedral_set);
+            const auto id_k   = std::get<2>(dihedral_set);
+            const auto id_l   = std::get<3>(dihedral_set);
+            const auto id_tgt = ep_i.getAtomID();
 
-            case IntraFuncForm::anharmonic:
-                calcBondForce_anharmonic_IJ(Normalize::realPos(epi.getPos()),
-                                            Normalize::realPos(ep_j[index_j].getPos()),
-                                            bond_prm,
-                                            force_IA);
-            break;
+            const auto* ptr_i = tree.getEpjFromId(id_i);
+            const auto* ptr_j = tree.getEpjFromId(id_j);
+            const auto* ptr_k = tree.getEpjFromId(id_k);
+            const auto* ptr_l = tree.getEpjFromId(id_l);
 
-            case IntraFuncForm::harmonic:
-                calcBondForce_harmonic_IJ(Normalize::realPos(epi.getPos()),
-                                          Normalize::realPos(ep_j[index_j].getPos()),
-                                          bond_prm,
-                                          force_IA);
-            break;
+            IntraPair::check_nullptr_ptcl(ptr_i, ep_i.getAtomID(), id_i);
+            IntraPair::check_nullptr_ptcl(ptr_j, ep_i.getAtomID(), id_j);
+            IntraPair::check_nullptr_ptcl(ptr_k, ep_i.getAtomID(), id_k);
+            IntraPair::check_nullptr_ptcl(ptr_l, ep_i.getAtomID(), id_l);
 
-            default:
-                std::cerr << "  IntraFuncForm = " << ENUM::what(bond_prm.form) << std::endl;
-                throw std::invalid_argument("undefined function form: bond force");
+            MODEL::KeyTorsion  key_torsion = std::make_tuple(ep_i.getMolType(),
+                                                             TorsionShape::dihedral,
+                                                             (*ptr_i).getAtomType(),
+                                                             (*ptr_j).getAtomType(),
+                                                             (*ptr_k).getAtomType(),
+                                                             (*ptr_l).getAtomType() );
+
+            if(MODEL::coef_table.torsion.count(key_torsion) != 1){
+                std::ostringstream oss;
+                oss << "key_torsion = " << ENUM::what(key_torsion) << " is not defined in MODEL::coef_table.torsion." << "\n";
+                throw std::invalid_argument(oss.str());
+            }
+
+            const auto torsion_prm = MODEL::coef_table.torsion.at(key_torsion);
+            switch (torsion_prm.form){
+                case IntraFuncForm::none:
+                    //--- free potential
+                    continue;
+                break;
+
+                case IntraFuncForm::cos:
+                    calcTorsionForce_harmonic_IJKL(Normalize::realPos( (*ptr_i).getPos() ),
+                                                   Normalize::realPos( (*ptr_j).getPos() ),
+                                                   Normalize::realPos( (*ptr_k).getPos() ),
+                                                   Normalize::realPos( (*ptr_l).getPos() ),
+                                                   id_i, id_j, id_k, id_l,
+                                                   id_tgt, torsion_prm,
+                                                   force_IA);
+                break;
+
+                case IntraFuncForm::OPLS_3:
+                    calcTorsionForce_OPLS_3rd_IJKL(Normalize::realPos( (*ptr_i).getPos() ),
+                                                   Normalize::realPos( (*ptr_j).getPos() ),
+                                                   Normalize::realPos( (*ptr_k).getPos() ),
+                                                   Normalize::realPos( (*ptr_l).getPos() ),
+                                                   id_i, id_j, id_k, id_l,
+                                                   id_tgt, torsion_prm,
+                                                   force_IA);
+                break;
+
+                default:
+                    throw std::invalid_argument("undefined potential type: " + ENUM::what(torsion_prm.form) + "at dihedral torsion force");
+            }
+        }
+
+        //--- improper torsion potential
+        for(const auto& improper_set : ep_i.improper_list()){
+            const auto id_i   = std::get<0>(improper_set);
+            const auto id_j   = std::get<1>(improper_set);
+            const auto id_k   = std::get<2>(improper_set);
+            const auto id_l   = std::get<3>(improper_set);
+            const auto id_tgt = ep_i.getAtomID();
+
+            const auto* ptr_i = tree.getEpjFromId(id_i);
+            const auto* ptr_j = tree.getEpjFromId(id_j);
+            const auto* ptr_k = tree.getEpjFromId(id_k);
+            const auto* ptr_l = tree.getEpjFromId(id_l);
+
+            IntraPair::check_nullptr_ptcl(ptr_i, ep_i.getAtomID(), id_i);
+            IntraPair::check_nullptr_ptcl(ptr_j, ep_i.getAtomID(), id_j);
+            IntraPair::check_nullptr_ptcl(ptr_k, ep_i.getAtomID(), id_k);
+            IntraPair::check_nullptr_ptcl(ptr_l, ep_i.getAtomID(), id_l);
+
+            MODEL::KeyTorsion  key_torsion = std::make_tuple(ep_i.getMolType(),
+                                                             TorsionShape::improper,
+                                                             (*ptr_i).getAtomType(),
+                                                             (*ptr_j).getAtomType(),
+                                                             (*ptr_k).getAtomType(),
+                                                             (*ptr_l).getAtomType() );
+
+            if(MODEL::coef_table.torsion.count(key_torsion) != 1){
+                std::ostringstream oss;
+                oss << "key_torsion = " << ENUM::what(key_torsion) << " is not defined in MODEL::coef_table.torsion." << "\n";
+                throw std::invalid_argument(oss.str());
+            }
+
+            const auto torsion_prm = MODEL::coef_table.torsion.at(key_torsion);
+            switch (torsion_prm.form){
+                case IntraFuncForm::none:
+                    //--- free potential
+                    continue;
+                break;
+
+                case IntraFuncForm::cos:
+                    calcTorsionForce_harmonic_IJKL(Normalize::realPos( (*ptr_i).getPos() ),
+                                                   Normalize::realPos( (*ptr_j).getPos() ),
+                                                   Normalize::realPos( (*ptr_k).getPos() ),
+                                                   Normalize::realPos( (*ptr_l).getPos() ),
+                                                   id_i, id_j, id_k, id_l,
+                                                   id_tgt, torsion_prm,
+                                                   force_IA);
+                break;
+
+                case IntraFuncForm::OPLS_3:
+                    calcTorsionForce_OPLS_3rd_IJKL(Normalize::realPos( (*ptr_i).getPos() ),
+                                                   Normalize::realPos( (*ptr_j).getPos() ),
+                                                   Normalize::realPos( (*ptr_k).getPos() ),
+                                                   Normalize::realPos( (*ptr_l).getPos() ),
+                                                   id_i, id_j, id_k, id_l,
+                                                   id_tgt, torsion_prm,
+                                                   force_IA);
+                break;
+
+                default:
+                    throw std::invalid_argument("undefined potential type: " + ENUM::what(torsion_prm.form) + "at improper torsion force");
+            }
         }
     }
 
-    //--- angle potential
-    for(size_t i=0; i<angle_list.size(); ++i){
-        PS::S64 id_i   = std::get<0>( angle_list.at(i) );
-        PS::S64 id_j   = std::get<1>( angle_list.at(i) );
-        PS::S64 id_k   = std::get<2>( angle_list.at(i) );
-        PS::S64 id_tgt = epi.getAtomID();
 
-        PS::S64 index_i = ID_table.find(id_i, epi.getPos());
-        PS::S64 index_j = ID_table.find(id_j, epi.getPos());
-        PS::S64 index_k = ID_table.find(id_k, epi.getPos());
+    //--- template function for FDPS interface
+    template <class Tforce,
+              class Ttree, class Tpsys, class Tdinfo>
+    void calcForceIntra(Ttree  &tree,
+                        Tpsys  &atom,
+                        Tdinfo &dinfo){
 
-        MODEL::CoefAngle angle_prm;
-        MODEL::KeyAngle  key_angle = std::make_tuple(epi.getMolType(),
-                                                     ep_j[index_i].getAtomType(),
-                                                     ep_j[index_j].getAtomType(),
-                                                     ep_j[index_k].getAtomType() );
-        try{
-            angle_prm = MODEL::coefTable_angle.at(key_angle);
-        }
-        catch(std::out_of_range err){
-            std::cerr << "key_angle = " << ENUM::what(key_angle) << " is not defined." << std::endl;
-            throw;
-        }
+        //--- get neighbor EP_intra information (do not calculate force)
+        tree.calcForceAll( IntraPair::dummy_func{}, atom, dinfo);
 
-        switch (angle_prm.form){
-            case IntraFuncForm::none:
-                //--- free potential
-                continue;
-            break;
+        const PS::S64 n_local = atom.getNumberOfParticleLocal();
 
-            case IntraFuncForm::harmonic:
-                calcAngleForce_harmonic_IJK(Normalize::realPos( ep_j[index_i].getPos() ),
-                                            Normalize::realPos( ep_j[index_j].getPos() ),
-                                            Normalize::realPos( ep_j[index_k].getPos() ),
-                                            id_i, id_j, id_k,
-                                            id_tgt, angle_prm,
-                                            force_IA);
-            break;
+        //--- calculate intramolecular force
+        for(PS::S64 i=0; i<n_local; ++i){
 
-            default:
-                std::cerr << "  IntraFuncForm = " << ENUM::what(angle_prm.form) << std::endl;
-                throw std::invalid_argument("undefined function form: angle force");
+            //--- skip no-bonded atoms
+            if( atom[i].bond.size() == 0 ) continue;
+
+            Tforce force_IA;
+                   force_IA.clear();
+            calcForceIntra_IA(atom[i],
+                              tree,
+                              force_IA);
+            atom[i].copyForceIntra(force_IA);
         }
     }
 
-    //--- dihedral torsion potential
-    for(size_t i=0; i<dihedral_list.size(); ++i){
-        PS::S64 id_i   = std::get<0>( dihedral_list.at(i) );
-        PS::S64 id_j   = std::get<1>( dihedral_list.at(i) );
-        PS::S64 id_k   = std::get<2>( dihedral_list.at(i) );
-        PS::S64 id_l   = std::get<3>( dihedral_list.at(i) );
-        PS::S64 id_tgt = epi.getAtomID();
-
-        PS::S64 index_i = ID_table.find(id_i, epi.getPos());
-        PS::S64 index_j = ID_table.find(id_j, epi.getPos());
-        PS::S64 index_k = ID_table.find(id_k, epi.getPos());
-        PS::S64 index_l = ID_table.find(id_l, epi.getPos());
-
-        MODEL::CoefTorsion torsion_prm;
-        MODEL::KeyTorsion  key_torsion = std::make_tuple(epi.getMolType(),
-                                                        TorsionShape::dihedral,
-                                                        ep_j[index_i].getAtomType(),
-                                                        ep_j[index_j].getAtomType(),
-                                                        ep_j[index_k].getAtomType(),
-                                                        ep_j[index_l].getAtomType() );
-        try{
-            torsion_prm = MODEL::coefTable_torsion.at(key_torsion);
-        }
-        catch(std::out_of_range err){
-            std::cerr << "key_torsion = " << ENUM::what(key_torsion) << " is not defined." << std::endl;
-            throw;
-        }
-
-        switch (torsion_prm.form){
-            case IntraFuncForm::none:
-                //--- free potential
-                continue;
-            break;
-
-            case IntraFuncForm::cos:
-                calcTorsionForce_harmonic_IJKL(Normalize::realPos( ep_j[index_i].getPos() ),
-                                               Normalize::realPos( ep_j[index_j].getPos() ),
-                                               Normalize::realPos( ep_j[index_k].getPos() ),
-                                               Normalize::realPos( ep_j[index_l].getPos() ),
-                                               id_i, id_j, id_k, id_l,
-                                               id_tgt, torsion_prm,
-                                               force_IA);
-            break;
-
-            default:
-                std::cerr << "  IntraFuncForm = " << ENUM::what(torsion_prm.form) << std::endl;
-                throw std::invalid_argument("undefined potential type: dihedral torsion force");
-        }
-    }
-
-    //--- improper torsion potential
-    for(size_t i=0; i<improper_list.size(); ++i){
-        PS::S64 id_i   = std::get<0>( improper_list.at(i) );
-        PS::S64 id_j   = std::get<1>( improper_list.at(i) );
-        PS::S64 id_k   = std::get<2>( improper_list.at(i) );
-        PS::S64 id_l   = std::get<3>( improper_list.at(i) );
-        PS::S64 id_tgt = epi.getAtomID();
-
-        PS::S64 index_i = ID_table.find(id_i, epi.getPos());
-        PS::S64 index_j = ID_table.find(id_j, epi.getPos());
-        PS::S64 index_k = ID_table.find(id_k, epi.getPos());
-        PS::S64 index_l = ID_table.find(id_l, epi.getPos());
-
-        MODEL::CoefTorsion torsion_prm;
-        MODEL::KeyTorsion  key_torsion = std::make_tuple(epi.getMolType(),
-                                                         TorsionShape::improper,
-                                                         ep_j[index_i].getAtomType(),
-                                                         ep_j[index_j].getAtomType(),
-                                                         ep_j[index_k].getAtomType(),
-                                                         ep_j[index_l].getAtomType() );
-        try{
-            torsion_prm = MODEL::coefTable_torsion.at(key_torsion);
-        }
-        catch(std::out_of_range){
-            std::cerr << "key_torsion = " << ENUM::what(key_torsion) << " is not defined." << std::endl;
-            throw;
-        }
-
-        switch (torsion_prm.form){
-            case IntraFuncForm::none:
-                //--- free potential
-                continue;
-            break;
-
-            case IntraFuncForm::cos:
-                calcTorsionForce_harmonic_IJKL(Normalize::realPos( ep_j[index_i].getPos() ),
-                                               Normalize::realPos( ep_j[index_j].getPos() ),
-                                               Normalize::realPos( ep_j[index_k].getPos() ),
-                                               Normalize::realPos( ep_j[index_l].getPos() ),
-                                               id_i, id_j, id_k, id_l,
-                                               id_tgt, torsion_prm,
-                                               force_IA);
-            break;
-
-            default:
-                std::cerr << "  IntraFuncForm = " << ENUM::what(torsion_prm.form) << std::endl;
-                throw std::invalid_argument("undefined potential type: improper torsion force");
-        }
-    }
-}
-
-
-//--- template function for FDPS interface
-template<class Tepj, class Tforce, class Ttree, class Tpsys>
-void calcForceIntra(Ttree &tree,
-                    Tpsys &psys){
-
-    PS::S64 n_local = psys.getNumberOfParticleLocal();
-
-    //--- pair atom search table
-    MD_EXT::ID_Table<PS::S64, PS::S64> ID_table;
-    ID_table.reserve(n_local);
-
-    //--- calculate intramolecular force
-    for(PS::S64 i=0; i<n_local; ++i){
-        ID_table.clear();
-
-        //--- skip no-bonded atoms
-        if( MODEL::intra_pair_manager.bond_list.at( psys[i].getAtomID() ).size() == 0 ) continue;
-
-        //--- make ID table for psys[i] neigbor
-        Tepj*   ep_j;
-        PS::S64 n_neighbor = tree.getNeighborListOneParticle(psys[i], ep_j);
-        for(PS::S64 j=0; j<n_neighbor; ++j){
-            ID_table.add( ep_j[j].getAtomID(), j, ep_j[j].getPos() );   // ID, array_index, pos
-        }
-
-        Tforce force_IA;
-               force_IA.clear();
-        calcForceIntra_IA(psys[i],
-                          ep_j,
-                          ID_table,
-                          MODEL::intra_pair_manager,
-                          force_IA                  );
-        psys[i].copyForceIntra(force_IA);
-    }
 }

@@ -6,7 +6,8 @@
 
 #include <particle_simulator.hpp>
 
-#include "md_ext_sys_control.hpp"
+#include "md_defs.hpp"
+#include "ext_sys_control.hpp"
 #include "md_loading_condition.hpp"
 
 int main(int argc, char *argv[]) {
@@ -27,14 +28,14 @@ int main(int argc, char *argv[]) {
         std::cout << "--- settings loaded in process: " << PS::Comm::getRank() << std::endl;
         std::cout << std::endl;
 
-        System::loading_sequence_condition("condition_sequence.imp",
+        System::loading_sequence_condition(MD_DEFS::condition_sequence_file,
                                            ext_sys_sequence,
                                            ext_sys_controller );
-        System::loading_molecular_condition("condition_molecule.imp");
+        System::loading_molecular_condition(MD_DEFS::condition_molecule_file);
     }
 
 
-    System::broadcast_setting();
+    System::broadcast_profile();
     ext_sys_sequence.broadcast(0);
     ext_sys_controller.broadcast(0);
     std::cout << "--- sync in MPI broadcast ---" << std::endl;
@@ -44,7 +45,7 @@ int main(int argc, char *argv[]) {
     //--- display settings
     if(PS::Comm::getRank() == 1) {
         std::cout << std::endl;
-        System::print_setting();
+        System::print_profile();
         ext_sys_controller.print();
         ext_sys_sequence.print();
     }

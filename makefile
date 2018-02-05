@@ -1,14 +1,33 @@
 #====================================================================
-#  Makefile for "md_fdps.x"
-#    2017/8/23  K.Kawai Tokumasu-Lab.
+#  Makefile for "md_fdps"
 #====================================================================
 
-#--- PATH for FDPS src directry
+#--- compiler settings
+CXX = mpicxx
+
+CPPFLAGS = -lm -std=c++11 -MMD
+#CPPFLAGS += -O3 -ffast-math -funroll-loops
+CPPFLAGS += -O0 -Wall -g3
+
+#--- parallelization flag for FDPS
+#CPPFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
+CPPFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+
+#--- C++ compile target
+SRC_DIR = ./src
+SRC_CPP = $(SRC_DIR)/md_init.cpp $(SRC_DIR)/md_fdps.cpp
+INCLUDE = -I$(SRC_DIR)/ -I./generic_ext/
+
+#--- source by automatic code generator
+SRC_AUTO = $(SRC_DIR)/enum_model.hpp
+
+
+#--- PATH for FDPS library
 #------ default
 PS_DIR = $(FDPS_ROOT)
 #------ absolute path
-#PS_DIR = $(HOME)/FDPS/FDPS_3.0_20161228
-#PS_DIR = $(HOME)/FDPS/FDPS_3.0_gcc54
+#PS_DIR = $(HOME)/FDPS/FDPS_4.0a_20171117
+#PS_DIR = $(HOME)/FDPS/FDPS_4.0a_gcc54
 
 #--- PATH for FFTw library
 #------ default
@@ -17,109 +36,128 @@ FFTW_DIR = $(FFTW_ROOT)
 #FFTW_DIR = $(HOME)/local/fftw-3.3.6
 #FFTW_DIR = $(HOME)/local/fftw-3.3.6-ompi-2.1.1-gcc-5.4
 
+#--- PATH for Google test framework
+GTEST_DIR = $(GTEST_ROOT)
+
+
+#--- preparing for PATH
 PS_PATH  = -I$(PS_DIR)/src/
 PS_PATH += -I$(PS_DIR)/src/particle_mesh/
-#LIB_PM   =   $(PS_DIR)/src/particle_mesh/libpm.a
-LIB_PM   =   $(PS_DIR)/src/particle_mesh/libpm_debug.a
+LIB_PM   =   $(PS_DIR)/src/particle_mesh/libpm.a
+#LIB_PM   =   $(PS_DIR)/src/particle_mesh/libpm_debug.a
 
 INCLUDE_FFTW  = -I$(FFTW_DIR)/include/
 LIB_FFTW      = -L$(FFTW_DIR)/lib/ -lfftw3f_mpi -lfftw3f
 LIB_FFTW_STATIC  = $(FFTW_DIR)/lib/libfftw3f_mpi.a
 LIB_FFTW_STATIC += $(FFTW_DIR)/lib/libfftw3f.a
 
-#--- add MD extention
-INCLUDE_MD_EXT = -I./md_ext_include/
+INCLUDE += $(PS_PATH) $(INCLUDE_FFTW)
 
-#--- compiler settings
-CC = mpicxx
-#CFLAGS = -I./src/ -O3 -ffast-math -funroll-loops -lm -std=c++11 -g3
-CFLAGS = -I./src/ -O0 -Wall -lm -std=c++11 -g3 -p
+#LIBS = $(LIB_PM) $(LIB_FFTW)
+LIBS = $(LIB_PM) $(LIB_FFTW_STATIC)
 
-#--- enable parallelization in FDPS
-#CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
-CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
 
-#--- C++ compile target
-PROGRAM = md_fdps.x
-SRC_CPP = ./src/md_main.cpp
-OBJ_CPP = $(SRC_CPP:%.cpp=%.o)
-OBJS    = $(OBJ_CPP)
+#--- preparing for main code
+OBJ_DIR = obj
+ifeq "$(strip $(OBJ_DIR))" ""
+  OBJ_DIR = .
+endif
 
-#--- dependency check
-DEPS = $(SRC_CPP:%.cpp=%.d)
+OBJS  = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC_CPP:.cpp=.o) ) )
+DEPS  = $(OBJS:.o=.d)
+TGT   = $(notdir $(SRC_CPP:.cpp=.x) )
+
+
+#--- preparing for unit test
+GTEST_SRCDIR = unit_test
+GTEST_SRCS :=
+REL := $(GTEST_SRCDIR)
+include $(REL)/Makefile
+
+GTEST_OBJDIR = test_obj
+ifeq "$(strip $(GTEST_OBJDIR))" ""
+  GTEST_OBJDIR = .
+endif
+
+GTEST_EXEDIR = test_bin
+ifeq "$(strip $(GTEST_EXEDIR))" ""
+  GTEST_EXEDIR = .
+endif
+
+GTEST_OBJS = $(addprefix $(GTEST_OBJDIR)/, $(notdir $(GTEST_SRCS:.cpp=.o) ) )
+GTEST_DEPS = $(GTEST_OBJS:.o=.d)
+GTEST_TGT  = $(addprefix $(GTEST_EXEDIR)/, $(notdir $(GTEST_SRCS:.cpp=) ) )
+
+GTEST_INCLUDE  = $(INCLUDE)
+GTEST_INCLUDE += -I$(GTEST_ROOT)/googletest/include
+
+GTEST_LIBS  = $(LIBS)
+GTEST_LIBS += $(GTEST_ROOT)/build/googlemock/gtest/libgtest.a
+#GTEST_LIBS += $(GTEST_ROOT)/build/googlemock/gtest/libgtest_main.a
+
+GTEST_FLAGS = $(CPPFLAGS) -isystem -pthread
 
 
 #=======================
 #  main MD program
 #=======================
-md_main: $(SRC_CPP)
-	$(CC) $(PS_PATH) $(CFLAGS) $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -MMD $< $(LIB_PM) $(LIB_FFTW) -o $(PROGRAM)
+main: $(TGT)
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_AUTO)
+	@[ -d $(OBJ_DIR) ] || mkdir -p $(OBJ_DIR)
+	$(CXX) $(CPPFLAGS) $(INCLUDE) -o $@ -c $<
+
+%.x: $(OBJ_DIR)/%.o
+	$(CXX) $(CPPFLAGS) -o $@ $< $(LIBS)
+
+
+#=======================
+#  tests for setting / parameter file
+#=======================
+test_condition: ./unit_test/test_loading_condition.cpp $(SRC_AUTO)
+	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
+	$(CXX) $(INCLUDE) $(CPPFLAGS) $< -o $(GTEST_EXEDIR)/test_condition
+	mpirun -n 2 $(GTEST_EXEDIR)/test_condition
+
+test_model: ./unit_test/test_loading_model.cpp $(SRC_AUTO)
+	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
+	$(CXX) $(INCLUDE) $(CPPFLAGS) $< -DTEST_MOL_INSTALL -o $(GTEST_EXEDIR)/test_model
+	$(GTEST_EXEDIR)/test_model  AA_wat_SPC_Fw
+
+test_param: ./unit_test/test_param_file.cpp $(SRC_AUTO)
+	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
+	$(CXX) $(INCLUDE) $(CPPFLAGS) $< -o $(GTEST_EXEDIR)/test_param
+	$(GTEST_EXEDIR)/test_param  AA_C6H5_CH3
+
 
 #=======================
 #  unit tests
 #=======================
-test_vec: ./unit_test/test_vec.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_MD_EXT) -o test_vec.x
-	./test_vec.x
+gtest: $(GTEST_TGT)
 
-test_blz_dist: ./unit_test/test_boltzmann_dist.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_MD_EXT) -o test_blz_dist.x
-	./test_blz_dist.x
+$(GTEST_OBJDIR)/%.o: $(GTEST_SRCDIR)/%.cpp $(SRC_AUTO)
+	@[ -d $(GTEST_OBJDIR) ] || mkdir -p $(GTEST_OBJDIR)
+	$(CXX) $(GTEST_FLAGS) $(GTEST_INCLUDE) -o $@ -c $<
 
-test_comm: ./unit_test/test_comm_tool.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_MD_EXT) -DDEBUG_COMM_TOOL -o test_comm.x
-	mpirun -n 2 ./test_comm.x
-
-test_intra_pair: ./unit_test/test_intra_pair_manager.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT)  -o test_intra_pair.x
-	./test_intra_pair.x
-
-test_model: ./unit_test/test_loading_model.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -DTEST_MOL_INSTALL -o test_model.x
-	./test_model.x  AA_wat_SPC_Fw
-
-test_condition: ./unit_test/test_loading_condition.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -o test_condition.x
-	mpirun -n 2 ./test_condition.x
-
-test_init: ./unit_test/test_initialize.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) -DTEST_MOL_INSTALL -o test_init.x
-	mpirun -n 2 ./test_init.x
+$(GTEST_EXEDIR)/%: $(GTEST_OBJDIR)/%.o
+	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
+	$(CXX) $(GTEST_FLAGS) -o $@ $<  $(GTEST_LIBS)
 
 
-#--- force & potential test
-test_force_LJ: ./unit_test/test_force_LJ.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) $(LIB_PM) $(LIB_FFTW_STATIC) -o test_force_LJ.x
-	mpirun -n 2 ./test_force_LJ.x
-
-test_force_coulomb: ./unit_test/test_force_coulomb.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) $(LIB_PM) $(LIB_FFTW_STATIC) -o test_force_coulomb.x
-	mpirun -n 2 ./test_force_coulomb.x
-
-test_force_bond: ./unit_test/test_force_bond.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) $(LIB_PM) $(LIB_FFTW_STATIC) -o test_force_bond.x
-	mpirun -n 2 ./test_force_bond.x
-
-test_force_angle: ./unit_test/test_force_angle.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) $(LIB_PM) $(LIB_FFTW_STATIC) -o test_force_angle.x
-	mpirun -n 2 ./test_force_angle.x
-
-test_force_dihedral: ./unit_test/test_force_dihedral.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) $(LIB_PM) $(LIB_FFTW_STATIC) -o test_force_dihedral.x
-	mpirun -n 2 ./test_force_dihedral.x
-
-test_force_improper: ./unit_test/test_force_improper.cpp
-	$(CC) $(PS_PATH) $(CFLAGS) $^ $(INCLUDE_FFTW) $(INCLUDE_MD_EXT) $(LIB_PM) $(LIB_FFTW_STATIC) -o test_force_improper.x
-	mpirun -n 2 ./test_force_improper.x
-
+#=======================
+#  script call
+#=======================
+$(SRC_DIR)/enum_model.hpp:
+	./script/convert_model_indicator.py
 
 .PHONY: clean
 clean:
-	rm -rf *.x $(DEPS) $(OBJS)
+	rm -rf $(TGT) $(OBJ_DIR)
+	rm -rf $(GTEST_EXEDIR) $(GTEST_OBJDIR)
 
 .PHONY: clean_all
 clean_all:
 	make clean
-	rm -rf ./posdata ./pdb ./resume *.dat *.out ./src/enum_model.hpp
+	rm -rf ./posdata ./pdb ./resume *.dat $(SRC_AUTO)
 
--include $(DEPS)
+-include $(DEPS) $(GTEST_DEPS)

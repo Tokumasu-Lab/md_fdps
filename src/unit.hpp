@@ -19,7 +19,7 @@ namespace Unit {
     static constexpr PS::F64 angm  = 1.0e-10;            // [m] [angstrom] to [meter]
 
     //--- ref: The NIST reference (http://physics.nist.gov/cuu/Constants/index.html)
-    static constexpr PS::F64 ec    = 1.6021766208e-19;   // [C] charge strength of electron
+    static constexpr PS::F64 ec    = 1.6021766208e-19;   // [C] charge of electron
     static constexpr PS::F64 e0    = 8.854187817620e-12; // [C^2/J·m] permittivity of vacuum
     static constexpr PS::F64 avgdr = 6.022140857e+23;    // [/mol] Avogadro constant
     static constexpr PS::F64 blz   = 1.38064852e-23;     // [J/K] Boltzmann constant
@@ -54,6 +54,12 @@ namespace Unit {
 				  << "   temperature  = " << std::setw(18) << norm_temp    << " [K·mol/kcal]\n"
 				  << "   pressure     = " << std::setw(18) << norm_press   << " [J·mol/kcal·m^3]\n"
 				  << "   density      = " << std::setw(18) << norm_dens    << " [kg/m^3]\n"
-				  << "   coulomb_coef = " << std::setw(18) << coef_coulomb << " [sqrt(kcal/mol)]\n" << std::flush;
+				  << "   coulomb_coef = " << std::setw(18) << coef_coulomb << " [sqrt(kcal/mol)]\n" << std::endl;
 	}
+
+    //! @brief convert normalized time into real time
+    PS::F64 to_real_time(const PS::F64 norm_time) { return norm_time/Unit::femto_second*Unit::norm_time; }
+
+    //! @brief convert real time into normalized time
+    PS::F64 to_norm_time(const PS::F64 real_time) { return real_time*Unit::femto_second/Unit::norm_time; }
 }

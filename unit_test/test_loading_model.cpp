@@ -27,60 +27,57 @@ int main(int argc, char *argv[]) {
         }
 
         System::model_list.clear();
-        for(int i=1; i<argc; i++){
+        for(int i=0; i<argc-1; i++){
 
-            std::string model_name = argv[i];
+            std::string model_name = argv[i+1];
             std::cout << std::endl;
             std::cout << "  model file: " << model_name << std::endl;
 
             MolName model = ENUM::which_MolName(model_name);
             System::model_list.push_back( std::make_pair(model, 0) );
             System::model_template.push_back( std::vector<Atom_FP>{} );
-            System::bond_template.push_back( std::vector<std::vector<PS::S64>>{} );
 
-            System::model_template.at(i-1).clear();
-            System::bond_template.at(i-1).clear();
-
-            loading_model_parameter(model_name,
-                                    System::model_template.at(i-1),
-                                    System::bond_template.at(i-1),
-                                    MODEL::coefTable_atom,
-                                    MODEL::coefTable_residue,
-                                    MODEL::coefTable_bond,
-                                    MODEL::coefTable_angle,
-                                    MODEL::coefTable_torsion);
+            MODEL::coef_table.clear();
+            MODEL::loading_model_parameter(model_name,
+                                           System::model_template.at(i),
+                                           MODEL::coef_table            );
 
             //--- show result
             std::cout << endl;
             std::cout << "result: atom_list" << std::endl;
             std::cout << "  \"MolID\" was set as illigal value(-1). this is model template." << std::endl;
-            MODEL::print_model_template( System::model_template.at(i-1),
-                                         System::bond_template.at(i-1) );
+            MODEL::print_model_template( System::model_template.at(i));
 
 
             std::cout << "result: residue_table" << std::endl;
-            MODEL::print_coef_table( MODEL::coefTable_residue,
-                                     ENUM::which_MolName(model_name) );
-
-
-            std::cout << "result: atom_table" << std::endl;
-            MODEL::print_coef_table( MODEL::coefTable_atom,
+            MODEL::print_coef_table( MODEL::coef_table.residue,
                                      ENUM::which_MolName(model_name) );
 
 
             std::cout << "result: bond_table" << std::endl;
-            MODEL::print_coef_table( MODEL::coefTable_bond,
+            MODEL::print_coef_table( MODEL::coef_table.bond,
                                      ENUM::which_MolName(model_name) );
 
 
             std::cout << "result: angle_table" << std::endl;
-            MODEL::print_coef_table( MODEL::coefTable_angle,
+            MODEL::print_coef_table( MODEL::coef_table.angle,
                                      ENUM::which_MolName(model_name) );
 
 
             std::cout << "result: torsion_table" << std::endl;
-            MODEL::print_coef_table( MODEL::coefTable_torsion,
+            MODEL::print_coef_table( MODEL::coef_table.torsion,
                                      ENUM::which_MolName(model_name) );
+
+            std::cout << "result: intra mask coefficient" << std::endl;
+            const auto& mask_param = MODEL::coef_table.mask_scaling.at( ENUM::which_MolName(model_name) );
+            int order = 0;
+            for(const auto& mask : mask_param){
+                ++order;
+                std::cout << "   order: " << order << "\n"
+                          << "      mask_LJ      = " << mask.scale_LJ      << "\n"
+                          << "      mask_coulomb = " << mask.scale_coulomb << std::endl;
+            }
+            std::cout << "  " << mask_param.size() << " parameters were set." << "\n" << std::endl;
         }
 
         std::cout << "    the test succeeded." << std::endl;

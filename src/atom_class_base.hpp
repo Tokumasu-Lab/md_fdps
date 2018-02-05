@@ -9,24 +9,27 @@
 #include <string>
 
 #include <particle_simulator.hpp>
+#include <molecular_dynamics_ext.hpp>
 
 #include "md_enum.hpp"
+#include "md_defs.hpp"
 
 
 //--- base classes for particle data ----------------------------------------------------
 //------ identifier
 class AtomID{
 protected:
-    PS::S64 atom_id = -1;  // atom id
-    PS::S64 mol_id  = -1;  // molecular id
+    MD_DEFS::ID_type atom_id = -1;  // atom id
+    MD_DEFS::ID_type mol_id  = -1;  // molecular id
 
 public:
-
     //--- member functions
-    void setAtomID(const PS::S64 &id){ this->atom_id = id; }
-    void setMolID( const PS::S64 &id){ this->mol_id  = id; }
-    inline PS::S64 getAtomID() const { return this->atom_id; }
-    inline PS::S64 getMolID()  const { return this->mol_id; }
+    void setAtomID(const MD_DEFS::ID_type &id){ this->atom_id = id; }
+    void setMolID( const MD_DEFS::ID_type &id){ this->mol_id  = id; }
+    inline MD_DEFS::ID_type getAtomID() const { return this->atom_id; }
+    inline MD_DEFS::ID_type getMolID()  const { return this->mol_id;  }
+
+    inline MD_DEFS::ID_type getId()     const { return this->atom_id; }
 
     //--- copy function
     template<class Tptcl>
@@ -64,15 +67,16 @@ public:
 
 
 //------ position
+template <class Tf>
 class AtomPos{
 protected:
-    PS::F64vec pos = 0.0;
+    PS::Vector3<Tf> pos = 0.0;
 
 public:
 
     //--- member functions
-    void setPos(const PS::F64vec &pos_new){ this->pos = pos_new; }
-    inline PS::F64vec getPos() const { return this->pos; }
+    void setPos(const PS::Vector3<Tf> &pos_new){ this->pos = pos_new; }
+    inline PS::Vector3<Tf> getPos() const { return this->pos; }
 
     //--- copy function
     template<class Tptcl>
@@ -82,17 +86,23 @@ public:
 };
 
 //------ mass & velocity
+template <class Tf>
 class AtomVel{
 protected:
-    PS::F64    mass = 0.0;  // mass of atom
-    PS::F64vec vel  = 0.0;  // velocity of atom
+    Tf              mass = 0.0;  // mass of atom
+    PS::Vector3<Tf> vel  = 0.0;  // velocity of atom
+    PS::Vector3<Tf> trj  = 0.0;  // trajectory of atom
 
 public:
+    void setMass(const Tf              &mass_new){ this->mass = mass_new; }
+    void setVel( const PS::Vector3<Tf> &vel_new){  this->vel  = vel_new; }
 
-    void setMass(const PS::F64    &mass_new){ this->mass = mass_new; }
-    void setVel( const PS::F64vec &vel_new){  this->vel  = vel_new; }
-    inline PS::F64    getMass() const { return this->mass; }
-    inline PS::F64vec getVel()  const { return this->vel; }
+    inline Tf              getMass() const { return this->mass; }
+    inline PS::Vector3<Tf> getVel()  const { return this->vel; }
+
+    inline void            clearTrj()                                { this->trj = 0.0;   }
+    inline void            addTrj(const PS::Vector3<Tf> &move)       { this->trj += move; }
+    inline PS::Vector3<Tf> getTrj()                            const { return this->trj;  }
 
     inline PS::F64 getKinetic() const {
         PS::F64 v2 = (this->vel*this->vel);
@@ -101,15 +111,16 @@ public:
 };
 
 //------ permanent charge
+template <class Tf>
 class AtomCharge{
 protected:
-    PS::F64 charge = 0.0;
+    Tf charge = 0.0;
 
 public:
 
-    void setCharge(const PS::F64 &q){ this->charge = q; }
-    inline PS::F64 getCharge()             const { return this->charge; }
-    inline PS::F64 getChargeParticleMesh() const { return this->charge; }
+    void setCharge(const Tf &q){ this->charge = q; }
+    inline Tf getCharge()             const { return this->charge; }
+    inline Tf getChargeParticleMesh() const { return this->charge; }
 
     template<class Tptcl>
     void copyAtomCharge(const Tptcl &fp){
@@ -118,17 +129,18 @@ public:
 };
 
 //------ VDW parameters
+template <class Tf>
 class AtomVDW{
 protected:
-    PS::F64 vdw_r = 0.0;
-    PS::F64 vdw_d = 0.0;
+    Tf vdw_r = 0.0;
+    Tf vdw_d = 0.0;
 
 public:
 
-    void setVDW_R(const PS::F64 &vdw_r){ this->vdw_r = vdw_r; }
-    void setVDW_D(const PS::F64 &vdw_d){ this->vdw_d = vdw_d; }
-    inline PS::F64 getVDW_R() const { return this->vdw_r; }
-    inline PS::F64 getVDW_D() const { return this->vdw_d; }
+    void setVDW_R(const Tf &vdw_r){ this->vdw_r = vdw_r; }
+    void setVDW_D(const Tf &vdw_d){ this->vdw_d = vdw_d; }
+    inline Tf getVDW_R() const { return this->vdw_r; }
+    inline Tf getVDW_D() const { return this->vdw_d; }
 
     template<class Tptcl>
     void copyAtomVDW(const Tptcl &fp){
@@ -143,11 +155,12 @@ public:
 //------ This class is the subset of Full Particle class.
 
 //------ LJ interaction with cutoff length (simple cutoff)
+template <class Tf>
 class ForceLJ {
 protected:
-    PS::F64vec force_LJ  = 0.0;
-    PS::F64vec virial_LJ = 0.0;
-    PS::F64    pot_LJ    = 0.0;
+    PS::Vector3<Tf> force_LJ  = 0.0;
+    PS::Vector3<Tf> virial_LJ = 0.0;
+    Tf              pot_LJ    = 0.0;
 
 public:
     void clearForceLJ(){
@@ -157,12 +170,12 @@ public:
     }
     void clear(){ this->clearForceLJ(); }
 
-    inline PS::F64vec getForceLJ()  const { return this->force_LJ;  }
-    inline PS::F64vec getVirialLJ() const { return this->virial_LJ; }
-    inline PS::F64    getPotLJ()    const { return this->pot_LJ;    }
-    inline void addForceLJ( const PS::F64vec &force){  this->force_LJ  += force;  }
-    inline void addVirialLJ(const PS::F64vec &virial){ this->virial_LJ += virial; }
-    inline void addPotLJ(   const PS::F64    &pot){    this->pot_LJ    += pot;    }
+    inline PS::Vector3<Tf> getForceLJ()  const { return this->force_LJ;  }
+    inline PS::Vector3<Tf> getVirialLJ() const { return this->virial_LJ; }
+    inline Tf              getPotLJ()    const { return this->pot_LJ;    }
+    inline void addForceLJ( const PS::Vector3<Tf> &force)  { this->force_LJ  += force;  }
+    inline void addVirialLJ(const PS::Vector3<Tf> &virial) { this->virial_LJ += virial; }
+    inline void addPotLJ(   const Tf              &pot)    { this->pot_LJ    += pot;    }
 
     template <class T>
     void copyForceLJ(const T &f){
@@ -170,16 +183,18 @@ public:
         this->virial_LJ = f.getVirialLJ();
         this->pot_LJ    = f.getPotLJ();
     }
-    void copyFromForce(const ForceLJ &f){
+    template <class Tf_rhs>
+    void copyFromForce(const ForceLJ<Tf_rhs> &f){
         this->copyForceLJ(f);
     }
 };
 
 //------ coulomb interaction
+template <class Tf>
 class ForceCoulomb {
 protected:
-    PS::F64vec field_coulomb = 0.0;
-    PS::F64      pot_coulomb = 0.0;
+    PS::Vector3<Tf> field_coulomb = 0.0;
+    Tf              pot_coulomb   = 0.0;
 
 public:
     void clearForceCoulomb(){
@@ -188,29 +203,31 @@ public:
     }
     void clear(){ this->clearForceCoulomb(); }
 
-    inline PS::F64vec getFieldCoulomb() const { return this->field_coulomb; }
-    inline PS::F64    getPotCoulomb()   const { return this->pot_coulomb;   }
-    inline void addFieldCoulomb(const PS::F64vec &f){ this->field_coulomb += f; }
-    inline void addPotCoulomb(  const PS::F64    &p){ this->pot_coulomb   += p; }
+    inline PS::Vector3<Tf> getFieldCoulomb() const { return this->field_coulomb; }
+    inline Tf              getPotCoulomb()   const { return this->pot_coulomb;   }
+    inline void addFieldCoulomb(const PS::Vector3<Tf> &f){ this->field_coulomb += f; }
+    inline void addPotCoulomb(  const Tf              &p){ this->pot_coulomb   += p; }
 
     template <class T>
     void copyForceCoulomb(const T &f){
         this->field_coulomb  = f.getFieldCoulomb();
         this->pot_coulomb    = f.getPotCoulomb();
     }
-    void copyFromForce(const ForceCoulomb &f){
+    template <class Tf_rhs>
+    void copyFromForce(const ForceCoulomb<Tf_rhs> &f){
         this->copyForceCoulomb(f);
     }
 };
 
 //--- Intramoleecular interaction
+template <class Tf>
 class ForceIntra {
 protected:
-    PS::F64vec force_intra  = 0.0;
-    PS::F64vec virial_intra = 0.0;
-    PS::F64    pot_bond     = 0.0;
-    PS::F64    pot_angle    = 0.0;
-    PS::F64    pot_torsion  = 0.0;
+    PS::Vector3<Tf> force_intra  = 0.0;
+    PS::Vector3<Tf> virial_intra = 0.0;
+    Tf              pot_bond     = 0.0;
+    Tf              pot_angle    = 0.0;
+    Tf              pot_torsion  = 0.0;
 
 public:
     void clearForceIntra(){
@@ -222,16 +239,16 @@ public:
     }
     void clear(){ this->clearForceIntra(); }
 
-    inline PS::F64vec getForceIntra()  const { return this->force_intra;  }
-    inline PS::F64vec getVirialIntra() const { return this->virial_intra; }
-    inline PS::F64    getPotBond()     const { return this->pot_bond;     }
-    inline PS::F64    getPotAngle()    const { return this->pot_angle;    }
-    inline PS::F64    getPotTorsion()  const { return this->pot_torsion;  }
-    inline void addForceIntra( const PS::F64vec &f){ this->force_intra  += f; }
-    inline void addVirialIntra(const PS::F64vec &v){ this->virial_intra += v; }
-    inline void addPotBond(   const PS::F64 &p){ this->pot_bond    += p; }
-    inline void addPotAngle(  const PS::F64 &p){ this->pot_angle   += p; }
-    inline void addPotTorsion(const PS::F64 &p){ this->pot_torsion += p; }
+    inline PS::Vector3<Tf> getForceIntra()  const { return this->force_intra;  }
+    inline PS::Vector3<Tf> getVirialIntra() const { return this->virial_intra; }
+    inline Tf              getPotBond()     const { return this->pot_bond;     }
+    inline Tf              getPotAngle()    const { return this->pot_angle;    }
+    inline Tf              getPotTorsion()  const { return this->pot_torsion;  }
+    inline void addForceIntra( const PS::Vector3<Tf> &f){ this->force_intra  += f; }
+    inline void addVirialIntra(const PS::Vector3<Tf> &v){ this->virial_intra += v; }
+    inline void addPotBond(    const Tf &p){ this->pot_bond    += p; }
+    inline void addPotAngle(   const Tf &p){ this->pot_angle   += p; }
+    inline void addPotTorsion( const Tf &p){ this->pot_torsion += p; }
 
     template <class T>
     void copyForceIntra(const T &f){
@@ -241,7 +258,8 @@ public:
         this->pot_angle    = f.getPotAngle();
         this->pot_torsion  = f.getPotTorsion();
     }
-    void copyFromForce(const ForceIntra &f){
+    template <class Tf_rhs>
+    void copyFromForce(const ForceIntra<Tf_rhs> &f){
         this->copyForceIntra(f);
     }
 };

@@ -1,10 +1,10 @@
 #!/usr/bin/python
+# coding: UTF-8
 #--------------------------------------------------------------------------------------------------
 # This script use python
 #   "./src/enum_model.hpp" file generator.
 #   source: ***.mol2 files in ./model
 #--------------------------------------------------------------------------------------------------
-# coding: UTF-8
 
 import subprocess
 import os
@@ -56,73 +56,106 @@ def load_atom_name(model, atom_list):
 
 #--- enum class definition
 def make_enum_class(typename, value_list, result):
-    result.append("enum class " + typename + " : uint_fast32_t {")
+    result.append(" "*4 + "enum class " + typename + " : uint_fast32_t {")
     for value in value_list:
-        result.append(" "*4 + value + ",")
-    result.append("};")
+        result.append(" "*8 + value + ",")
+    result.append(" "*4 + "};")
+    result.append("")
+
+
+#--- map between enum and string
+def make_map(typename, value_list, result):
+    width = 0
+    for value in value_list:
+        width = max(len(value), width)
+
+    result.append("namespace {")
+    result.append(" "*4 + "static const std::map<std::string, " + typename + "> table_str_" + typename + " {")
+    for value in value_list:
+        n_space = width - len(value)
+        line =  " "*8 + "{"
+        line += '"' + value + '"' + " "*n_space
+        line += ", "
+        line += typename + "::" + value + " "*n_space
+        line += "},"
+        result.append(line)
+    result.append(" "*4 + "};")
+
+    result.append("")
+
+    result.append(" "*4 + "static const std::map<" + typename + ", std::string> table_" + typename + "_str {")
+    for value in value_list:
+        n_space = width - len(value)
+        line =  " "*8 + "{"
+        line += typename + "::" + value + " "*n_space
+        line += ", "
+        line += '"' + value + '"' + " "*n_space
+        line += "},"
+        result.append(line)
+    result.append(" "*4 + "};")
+
+    result.append("}")
     result.append("")
 
 
 #--- "what(enum value)" function (return std::string)
-def make_what(typename, value_list, result):
+def make_what(type_list, result):
     result.append("namespace ENUM {")
-    result.append(" "*4 + "inline std::string what(const " + typename + " &e){")
 
-    result.append(" "*8 + "switch (e) {")
-
-    for value in value_list:
-        result.append(" "*12 + "case " + typename + "::" + value + ":")
-        result.append(" "*16 + 'return "' + value + '";')
-        result.append(" "*12 + "break;")
+    for t in type_list:
+        result.append(" "*4 + "inline std::string what(const " + t + " &e){")
+        result.append(" "*8  + "if(table_" + t + "_str.find(e) != table_" + t + "_str.end()){")
+        result.append(" "*12 +     "return table_" + t + "_str.at(e);")
+        result.append(" "*8  + "} else {")
+        result.append(" "*12 +     "using type_base = typename std::underlying_type<" + t + ">::type;")
+        result.append(" "*12 +     'std::cerr << "  ' + t + ': input = " << static_cast<type_base>(e) << std::endl;')
+        result.append(" "*12 +     'throw std::out_of_range("undefined enum value in ' + t + '.");')
+        result.append(" "*8  + "}")
+        result.append(" "*4  + "}")
         result.append("")
 
-    result.append(" "*12 + "default:")
-    result.append(" "*16 + 'throw std::out_of_range("undefined enum value in ' + typename + '");')
-
-    result.append(" "*8 + "}")
-
-    result.append(" "*4 + "}")
     result.append("}")
     result.append("")
 
     result.append("namespace std {")
-    result.append(" "*4 + "inline string to_string(const " + typename + " &e){ return ENUM::what(e); }")
+
+    for t in type_list:
+        result.append(" "*4 + "inline string to_string(const " + t + " &e){ return ENUM::what(e); }")
+        result.append("")
+
     result.append("}")
     result.append("")
 
 
 #--- "which_***(std::string)" function (return enum class value)
-def make_which(typename, value_list, result):
+def make_which(type_list, result):
     result.append("namespace ENUM {")
-    result.append(" "*4 + "inline " + typename + " which_" + typename + "(const std::string &str){")
 
-    result.append(" "*8 + 'if(str == "' + value_list[0] + '"){')
-    result.append(" "*12 + 'return ' + typename + '::' + value_list[0] + ';')
-    result.append(" "*8 + "}")
+    for t in type_list:
+        result.append(" "*4  + "inline " + t + " which_" + t + "(const std::string &str){")
+        result.append(" "*8  +     "if(table_str_" + t + ".find(str) != table_str_" + t + ".end()){")
+        result.append(" "*12 +         "return table_str_" + t + ".at(str);")
+        result.append(" "*8  +     "} else {")
+        result.append(" "*12 +         'std::cerr << "  ' + t + ': input = " << str << std::endl;')
+        result.append(" "*12 +         'throw std::out_of_range("undefined enum value in ' + t + '.");')
+        result.append(" "*8  +     "}")
+        result.append(" "*4  + "}")
+        result.append("")
 
-    for value in value_list[1:]:
-        result.append(" "*8 + 'else if(str == "' + value + '"){')
-        result.append(" "*12 + 'return ' + typename + '::' + value + ';')
-        result.append(" "*8 + "}")
-
-    result.append(" "*8  + "else {")
-    result.append(" "*12 + 'std::cerr << "  ' + typename + ': input = " << str << std::endl;')
-    result.append(" "*12 + 'throw std::out_of_range("undefined enum value in ' + typename + '");')
-    result.append(" "*8  + "}")
-
-    result.append(" "*4 + "}")
     result.append("}")
     result.append("")
 
 
 #--- "size_***()" function (return the number of defined value)
-def make_size(typename, value_list, result):
+def make_size(type_list, result):
     result.append("namespace ENUM {")
-    result.append(" "*4 + "inline size_t size_" + typename + "(){")
 
-    result.append(" "*8 + "return " + str(len(value_list)) + ";")
+    for t in type_list:
+        result.append(" "*4 + "inline size_t size_" + t + "(){")
+        result.append(" "*8 + "return table_str_" + t + ".size();")
+        result.append(" "*4 + "}")
+        result.append("")
 
-    result.append(" "*4 + "}")
     result.append("}")
     result.append("")
 
@@ -138,7 +171,7 @@ def make_output_ostream(type_list, result):
 
 
 #--- "what(std::tuple<...>)" function (return std::string)
-def make_whatis_tuple(type_list, result):
+def make_whatis_tuple(result):
     #--- string converter: int and double
     result.append("namespace ENUM {")
     result.append(" "*4 + "template<typename T>")
@@ -177,7 +210,7 @@ def make_whatis_tuple(type_list, result):
     result.append("")
 
 
-#--- specialize std::hash() for enum class
+#--- specialize std::hash() for enum class (C++14)
 #      support for GCC 4.x ~ 5.x. naturally supported by GCC 6.0 or later.
 #      ref: http://qiita.com/taskie/items/479d649ea1b20bacbe03
 def make_hash_func(type_list, result):
@@ -236,42 +269,42 @@ if __name__ == "__main__":
     result.append("")
     result.append("#include <cstdint>")
     result.append("#include <string>")
+    result.append("#include <map>")
     result.append("#include <tuple>")
     result.append("#include <stdexcept>")
     result.append("")
     result.append("")
 
-    #------ enum class of model name (using file name)
+    #------ define enum class
     make_enum_class("MolName", model_list, result)
-    #------ enum class of atom name
     make_enum_class("AtomName", atom_list, result)
 
-    #------ for MolType
-    result.append('//--- basic interface for "MolType"')
-    make_what(  "MolName", model_list, result)
-    make_which( "MolName", model_list, result)
-    make_size(  "MolName", model_list, result)
-    #------ for AtomType
-    result.append('//--- basic interface for "AtomType"')
-    make_what(  "AtomName", atom_list, result)
-    make_which( "AtomName", atom_list, result)
-    make_size(  "AtomName", atom_list, result)
+    #------ map data between string and enum class
+    make_map("MolName", model_list, result)
+    make_map("AtomName", atom_list, result)
 
     type_list = []
     type_list.append("MolName")
     type_list.append("AtomName")
-    #result.append('//--- convert std::tuple<...> to std::string')
-    #make_whatis_tuple(type_list, result)
 
-    #--- add to global namespace
+    #------ interface
+    result.append('//--- basic interface for enum class')
+    make_what(  type_list, result)
+    make_which( type_list, result)
+    make_size(  type_list, result)
+
+    #result.append('//--- convert std::tuple<...> to std::string')
+    #make_whatis_tuple(result)
+
+    #--- add ostream interface
     result.append('//--- output function as "std::cout << (enum class::value)"')
     make_output_ostream(type_list, result)
     result.append("")
 
     #--- add hash function
     result.append('//--- specialized hash function')
-    result.append('//        (support for gcc 4.x ~ 5.x. naturally supported by gcc 6.0 or later.)')
-    result.append('//         ref: http://qiita.com/taskie/items/479d649ea1b20bacbe03')
+    result.append('//        support for gcc 4.x ~ 5.x. naturally supported by gcc 6.0 or later. (C++14 standard)')
+    result.append('//        ref: http://qiita.com/taskie/items/479d649ea1b20bacbe03')
     make_hash_func(type_list, result)
 
 
