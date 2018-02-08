@@ -77,6 +77,25 @@ namespace COMM_TOOL {
     }
 
     /**
+    * @brief specialization for std::string.
+    * @param[in,out] str target.
+    * @param[in] root ID of source process.
+    * @details transcode std::string to std::vector<char> and call broadcast() for vector<T>.
+    */
+    void broadcast(std::string &str, const PS::S32 &root){
+        #ifdef DEBUG_COMM_TOOL
+            if(PS::Comm::getRank() == root )  std::cout << " *** bc_string  len=" << vec_str.size() << std::endl;
+        #endif
+
+        std::vector<char> char_buff;
+        serialize_string(str, char_buff);
+
+        broadcast(char_buff, root);
+
+        deserialize_string(char_buff, str);
+    }
+
+    /**
     * @brief specialization for std::vector<std::string>.
     * @param[in,out] vec_str target.
     * @param[in] root ID of source process.

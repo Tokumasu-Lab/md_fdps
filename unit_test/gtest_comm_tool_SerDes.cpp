@@ -69,10 +69,9 @@ TEST_F(SerDes, VecVec){
                                          serial_index,
                                          result       );
 
-    ASSERT_EQ(vec_vi, result);
+    EXPECT_EQ(result, vec_vi);
 }
 
-//--- unit test definition, CANNOT use "_" in test/test_case name.
 TEST_F(SerDes, VecPair){
     std::vector<int>    serial_Ta;
     std::vector<double> serial_Tb;
@@ -87,13 +86,11 @@ TEST_F(SerDes, VecPair){
                                    serial_Tb,
                                    result    );
 
-    ASSERT_EQ(vec_p_i_f, result);
+    EXPECT_EQ(result, vec_p_i_f);
 }
 
-//--- unit test definition, CANNOT use "_" in test/test_case name.
 TEST_F(SerDes, VecStr){
-    std::vector<char> serial_data;
-
+    std::vector<char>        serial_data;
     std::vector<std::string> result;
 
     COMM_TOOL::serialize_vector_string(vec_str,
@@ -102,7 +99,22 @@ TEST_F(SerDes, VecStr){
     COMM_TOOL::deserialize_vector_string(serial_data,
                                          result      );
 
-    ASSERT_EQ(vec_str, result);
+    EXPECT_EQ(result, vec_str);
+}
+
+TEST_F(SerDes, Str){
+    std::vector<char> serial_data;
+    std::string       result;
+
+    for(const auto& str : vec_str){
+        COMM_TOOL::serialize_string(str,
+                                    serial_data);
+
+        COMM_TOOL::deserialize_string(serial_data,
+                                      result      );
+
+        EXPECT_EQ(result, str);
+    }
 }
 
 

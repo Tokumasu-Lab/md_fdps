@@ -99,50 +99,46 @@ class BroadcastBasic :
 //--- unit test definition, CANNOT use "_" in test/test_case name.
 TEST_F(BroadcastBasic, VecInt){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].vec_int     , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_int     , data[i].vec_int     ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].vec_int, i);
+        EXPECT_EQ(data[i].vec_int, ref[i].vec_int) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastBasic, VecVecInt){
     for(int i=0; i<n_proc; ++i){
         COMM_TOOL::broadcast(data[i].vec_vec_int , i);
+        EXPECT_EQ(data[i].vec_vec_int, ref[i].vec_vec_int) << "source_proc = " << i;
     }
+}
+TEST_F(BroadcastBasic, Str){
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_vec_int , data[i].vec_vec_int ) << "source_proc = " << i;
+        for(size_t j=0; j<data[i].vec_str.size(); ++j){
+            COMM_TOOL::broadcast(data[i].vec_str.at(j), i);
+            EXPECT_EQ(data[i].vec_str.at(j), ref[i].vec_str.at(j)) << "source_proc = " << i;
+        }
     }
 }
 TEST_F(BroadcastBasic, VecStr){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].vec_str     , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_str     , data[i].vec_str     ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].vec_str, i);
+        EXPECT_EQ(data[i].vec_str, ref[i].vec_str) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastBasic, VecPairIntFloat){
     for(int i=0; i<n_proc; ++i){
         COMM_TOOL::broadcast(data[i].vec_pair_i_f, i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_pair_i_f, data[i].vec_pair_i_f) << "source_proc = " << i;
+        EXPECT_EQ(data[i].vec_pair_i_f, ref[i].vec_pair_i_f) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastBasic, MapIntFloat){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].map_i_f     , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].map_i_f     , data[i].map_i_f     ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].map_i_f, i);
+        EXPECT_EQ(data[i].map_i_f, ref[i].map_i_f) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastBasic, MultiMapIntFloat){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].m_map_i_f   , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].m_map_i_f   , data[i].m_map_i_f   ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].m_map_i_f, i);
+        EXPECT_EQ(data[i].m_map_i_f, ref[i].m_map_i_f) << "source_proc = " << i;
     }
 }
 
@@ -242,41 +238,31 @@ class BroadcastRecursive :
 TEST_F(BroadcastRecursive, VecVecVecInt){
     for(int i=0; i<n_proc; ++i){
         COMM_TOOL::broadcast(data[i].vec_vec_vec_int, i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_vec_vec_int, data[i].vec_vec_vec_int) << "source_proc = " << i;
+        EXPECT_EQ(data[i].vec_vec_vec_int, ref[i].vec_vec_vec_int) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastRecursive, VecVecStr){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].vec_vec_str    , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_vec_str    , data[i].vec_vec_str    ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].vec_vec_str, i);
+        EXPECT_EQ(data[i].vec_vec_str, ref[i].vec_vec_str) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastRecursive, VecPairStrVecInt){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].vec_pair_s_vi  , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].vec_pair_s_vi  , data[i].vec_pair_s_vi  ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].vec_pair_s_vi, i);
+        EXPECT_EQ(data[i].vec_pair_s_vi, ref[i].vec_pair_s_vi) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastRecursive, MapStrVecInt){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].map_s_vi       , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].map_s_vi       , data[i].map_s_vi       ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].map_s_vi, i);
+        EXPECT_EQ(data[i].map_s_vi, ref[i].map_s_vi) << "source_proc = " << i;
     }
 }
 TEST_F(BroadcastRecursive, MultiMapStrVecInt){
     for(int i=0; i<n_proc; ++i){
-        COMM_TOOL::broadcast(data[i].m_map_s_vi     , i);
-    }
-    for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(ref[i].m_map_s_vi     , data[i].m_map_s_vi     ) << "source_proc = " << i;
+        COMM_TOOL::broadcast(data[i].m_map_s_vi, i);
+        EXPECT_EQ(data[i].m_map_s_vi, ref[i].m_map_s_vi) << "source_proc = " << i;
     }
 }
 

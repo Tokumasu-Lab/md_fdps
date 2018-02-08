@@ -1,18 +1,48 @@
 #!/bin/bash -e
 
-#--- compile unit test code
-make gtest
+usage_exit() {
+	echo "Usage: $0 [-j n_core] [-m n_mpi] [-o n_omp]"
+	echo "    n_core: # of core for make. used as 'make -j n_core'."
+	echo "    n_mpi : # of process for MPI."
+	echo "    n_omp : # of threads for OpenMP."
+	exit 1
+}
 
-declare EXE_DIR='./test_bin'
-export OMP_NUM_THREADS=2
+#--- default settings
+EXE_DIR="./test_bin"
+CXX_NUM=1
+MPI_NUM=2
+OMP_NUM=1
+
+#--- get option
+while getopts j:m:o:h OPT
+do
+	case $OPT in
+		j) CXX_NUM=$OPTARG
+			;;
+		m) MPI_NUM=$OPTARG
+			;;
+		o) OMP_NUM=$OPTARG
+			;;
+		h) usage_exit
+	esac
+done
+
+#--- compile unit test code
+MAKE_ARG=""
+if [ "$CXX_NUM" -gt 2 ]; then
+	MAKE_ARG=" -j $CXX_NUM"
+fi
+make gtest $MAKE_ARG
 
 #--- PS::Vector3<T> extension
 ${EXE_DIR}/gtest_vec_ext
 
 #--- COMM_TOOL::
 ${EXE_DIR}/gtest_comm_tool_SerDes
-mpirun -np 2 ${EXE_DIR}/gtest_comm_tool_broadcast
-mpirun -np 2 ${EXE_DIR}/gtest_comm_tool_allGather
+mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_broadcast
+mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_allGather
+mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_gather
 
 #--- MD_EXT::boltzmann_dist
 ${EXE_DIR}/gtest_blz_dist
@@ -25,15 +55,15 @@ ${EXE_DIR}/gtest_fixed_vector
 ${EXE_DIR}/gtest_basic_connect
 
 #--- IntraPair::
-mpirun -np 2 ${EXE_DIR}/gtest_intra_pair
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_intra_pair
 
 #--- force test
-mpirun -np 2 ${EXE_DIR}/gtest_force_LJ
-mpirun -np 2 ${EXE_DIR}/gtest_force_coulomb
-mpirun -np 2 ${EXE_DIR}/gtest_force_bond
-mpirun -np 2 ${EXE_DIR}/gtest_force_angle
-mpirun -np 2 ${EXE_DIR}/gtest_force_dihedral
-mpirun -np 2 ${EXE_DIR}/gtest_force_improper
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_LJ
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_coulomb
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_bond
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_angle
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_dihedral
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_improper
 
 #--- file I/O test
-mpirun -np 2 ${EXE_DIR}/gtest_fileIO
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_fileIO

@@ -17,8 +17,10 @@ class MPIEnvironment :
 
             //--- display total threads for FDPS
             if(PS::Comm::getRank() == 0){
-                std::cerr << "Number of processes          : " << PS::Comm::getNumberOfProc()   << "\n"
-                          << "Number of threads per process: " << PS::Comm::getNumberOfThread() << std::endl;
+                std::ostringstream oss;
+                oss << "Number of processes          : " << PS::Comm::getNumberOfProc()   << "\n"
+                    << "Number of threads per process: " << PS::Comm::getNumberOfThread() << "\n";
+                std::cout << oss.str() << std::flush;
             }
         }
 

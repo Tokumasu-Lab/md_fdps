@@ -104,7 +104,7 @@ namespace COMM_TOOL {
                                        std::vector<char>        &vec_char){
 
         vec_char.clear();
-        for(auto &str : vec_str){
+        for(const auto &str : vec_str){
             size_t len = str.size();
             for(size_t index=0; index<len; ++index){
                 vec_char.emplace_back(str[index]);
@@ -123,13 +123,35 @@ namespace COMM_TOOL {
         vec_str.clear();
         std::string str_elem;
         str_elem.clear();
-        for(auto &c : vec_char){
+        for(const auto &c : vec_char){
             if( c != '\0' ){
                 str_elem.push_back(c);
             } else {
                 vec_str.push_back(str_elem);
                 str_elem.clear();
             }
+        }
+    }
+
+    /**
+    * @brief serialize std::string into std::vector<char>.
+    */
+    void serialize_string(const std::string       &str,
+                                std::vector<char> &vec_char){
+        vec_char.clear();
+        for(size_t i=0; i<str.size(); ++i){
+            vec_char.emplace_back(str[i]);
+        }
+    }
+
+    /**
+    * @brief deserialize std::string into std::vector<char>.
+    */
+    void deserialize_string(const std::vector<char> &vec_char,
+                                  std::string       &str      ){
+        str.clear();
+        for(const auto& c : vec_char){
+            str.push_back(c);
         }
     }
 

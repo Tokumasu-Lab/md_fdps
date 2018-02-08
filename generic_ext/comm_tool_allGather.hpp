@@ -59,7 +59,7 @@ namespace COMM_TOOL {
     * @param[in] value send target. MUST NOT contain pointer member.
     * @param[out] recv_vec recieve result.
     */
-    template <typename T>
+    template <class T>
     void allGather(const T              &value,
                          std::vector<T> &recv_vec){
         #ifdef DEBUG_COMM_TOOL
@@ -77,14 +77,14 @@ namespace COMM_TOOL {
     * @param[in] send_vec send target. class T MUST NOT contain pointer member.
     * @param[out] recv_vec_vec recieve result.
     */
-    template <typename T>
+    template <class T>
     void allGather(const std::vector<T>              &send_vec,
                          std::vector<std::vector<T>> &recv_vec_vec){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::vector<T>, result>" << std::endl;
         #endif
 
-        recv_vec_vec.resize(PS::Comm::getNumberOfProc());
+        const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         std::vector<PS::S32> n_recv;
         std::vector<PS::S32> n_recv_disp;
@@ -92,17 +92,18 @@ namespace COMM_TOOL {
         PS::S32              len = send_vec.size();
         allGather(len, n_recv);
 
-        n_recv_disp.resize(PS::Comm::getNumberOfProc()+1);
+        n_recv_disp.resize(n_proc+1);
         n_recv_disp[0] = 0;
-        for(PS::S32 i=0; i<PS::Comm::getNumberOfProc(); ++i){
+        for(PS::S32 i=0; i<n_proc; ++i){
             n_recv_disp.at(i+1) = n_recv_disp.at(i) + n_recv.at(i);
         }
-        recv_data.resize( n_recv_disp[ PS::Comm::getNumberOfProc() ] );
+        recv_data.resize( n_recv_disp[n_proc] );
 
         PS::Comm::allGatherV(&send_vec[0], send_vec.size(),
                              &recv_data[0], &n_recv[0], &n_recv_disp[0]);
 
-        for(PS::S32 i_proc=0; i_proc<PS::Comm::getNumberOfProc(); ++i_proc){
+        recv_vec_vec.resize(n_proc);
+        for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
             auto& local_vec = recv_vec_vec.at(i_proc);
                   local_vec.clear();
                   local_vec.reserve(n_recv.at(i_proc));
@@ -112,6 +113,32 @@ namespace COMM_TOOL {
             for(PS::S32 index=index_begin; index<index_end; ++index){
                 local_vec.emplace_back( recv_data.at(index) );
             }
+        }
+    }
+
+    /**
+    * @brief specialization for std::string.
+    * @param[in] send_str send target.
+    * @param[out] recv_vec_str recieve result.
+    */
+    void allGather(const std::string              &send_str,
+                         std::vector<std::string> &recv_vec_str){
+        #ifdef DEBUG_COMM_TOOL
+            if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::string>, result>" << std::endl;
+        #endif
+
+        std::vector<char>              send_vec_char;
+        std::vector<std::vector<char>> recv_vec_vec_char;
+
+        const PS::S32 n_proc = PS::Comm::getNumberOfProc();
+
+        serialize_string(send_str, send_vec_char);
+        allGather(send_vec_char, recv_vec_vec_char);
+
+        recv_vec_str.resize(n_proc);
+        for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
+            deserialize_string(recv_vec_vec_char.at(i_proc),
+                               recv_vec_str.at(i_proc)      );
         }
     }
 
@@ -134,7 +161,6 @@ namespace COMM_TOOL {
         serialize_vector_string(send_vec_str, send_vec_char);
         allGather(send_vec_char, recv_vec_vec_char);
 
-        recv_vec_vec_str.clear();
         recv_vec_vec_str.resize(n_proc);
         for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
             deserialize_vector_string(recv_vec_vec_char.at(i_proc),
@@ -150,7 +176,7 @@ namespace COMM_TOOL {
     * @details class T accepts std::vector<>, std::string, or user-defined class WITHOUT pointer member.
     * @details If 3 or more nested std::vector<...> is passed, this function will call itself recurcively.
     */
-    template <typename T>
+    template <class T>
     void allGather(const std::vector<std::vector<T>>              &send_vec_vec,
                          std::vector<std::vector<std::vector<T>>> &recv_vec_vec_vec){
         #ifdef DEBUG_COMM_TOOL
@@ -160,6 +186,8 @@ namespace COMM_TOOL {
         std::vector<T>      vec_data;
         std::vector<size_t> vec_index;
 
+        const PS::S32 n_proc = PS::Comm::getNumberOfProc();
+
         serialize_vector_vector(send_vec_vec,
                                 vec_data, vec_index);
 
@@ -168,9 +196,8 @@ namespace COMM_TOOL {
         allGather(vec_data,  recv_data);
         allGather(vec_index, recv_index);
 
-        recv_vec_vec_vec.clear();
-        recv_vec_vec_vec.resize(PS::Comm::getNumberOfProc());
-        for(PS::S32 i_proc=0; i_proc<PS::Comm::getNumberOfProc(); ++i_proc){
+        recv_vec_vec_vec.resize(n_proc);
+        for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
             deserialize_vector_vector(recv_data.at(i_proc), recv_index.at(i_proc),
                                       recv_vec_vec_vec.at(i_proc)                 );
         }
@@ -183,7 +210,7 @@ namespace COMM_TOOL {
     * @details devide std::vector<std::pair<Ta, Tb>> into std::vector<Ta> and std::vector<Tb>, then call allGatherV() for std::vector<T>.
     * @details class Ta and Tb accept std::vector<>, std::string, or user-defined class WITHOUT pointer member.
     */
-    template <typename Ta, typename Tb>
+    template <class Ta, class Tb>
     void allGather(const std::vector<std::pair<Ta, Tb>>              &send_vec_pair,
                          std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vec_pair){
         #ifdef DEBUG_COMM_TOOL
@@ -192,6 +219,9 @@ namespace COMM_TOOL {
 
         std::vector<Ta> vec_1st;
         std::vector<Tb> vec_2nd;
+
+        const PS::S32 n_proc = PS::Comm::getNumberOfProc();
+
         split_vector_pair(send_vec_pair,
                           vec_1st, vec_2nd);
 
@@ -200,25 +230,20 @@ namespace COMM_TOOL {
         allGather(vec_1st, recv_vec_1st);
         allGather(vec_2nd, recv_vec_2nd);
 
-        recv_vec_vec_pair.clear();
-        recv_vec_vec_pair.resize(PS::Comm::getNumberOfProc());
-        for(PS::S32 i=0; i<PS::Comm::getNumberOfProc(); ++i){
+        recv_vec_vec_pair.resize(n_proc);
+        for(PS::S32 i=0; i<n_proc; ++i){
             combine_vector_pair(recv_vec_1st.at(i), recv_vec_2nd.at(i),
                                 recv_vec_vec_pair.at(i)                );
         }
     }
 
-    //--- insert container
-    //--- unordered_map
-    //--- unordered_multimap
-
 
     /**
     * @brief specialization for returning type interface.
-    * @param[in] send_value send target.
-    * @return    recieve_vector recieved data.
-    * @detail    wrapper for "auto recv_vec = COMM_TOOL::allGather(data);"
-    * @detail    size of vector = PS::Comm::getNumberOfProc();
+    * @param[in] send_data send target.
+    * @return    recv_vec recieved data.
+    * @detail    wrapper for the use case: "auto recv_vec = COMM_TOOL::allGather(data);"
+    * @detail    recv_vec.size() = PS::Comm::getNumberOfProc();
     */
     template <typename T>
     std::vector<T> allGather(const T &send_data){

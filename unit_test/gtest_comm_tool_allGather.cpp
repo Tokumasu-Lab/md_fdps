@@ -90,30 +90,57 @@ class AllGatherBasic :
 
 //--- unit test definition, CANNOT use "_" in test/test_case name.
 TEST_F(AllGatherBasic, VecInt){
-    auto recv_vec_vi     = COMM_TOOL::allGather(data[id_proc].vec_int     );
+    auto recv_vec_vi = COMM_TOOL::allGather(data[id_proc].vec_int);
+
+    static_assert(std::is_same<decltype(recv_vec_vi), std::vector<std::vector<int>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_int     , recv_vec_vi.at(i)     ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vi.at(i), data.at(i).vec_int) << "source_proc = " << i;
     }
 }
 
 TEST_F(AllGatherBasic, VecVecInt){
-    auto recv_vec_vvi    = COMM_TOOL::allGather(data[id_proc].vec_vec_int );
+    auto recv_vec_vvi    = COMM_TOOL::allGather(data[id_proc].vec_vec_int);
+
+    static_assert(std::is_same<decltype(recv_vec_vvi),
+                               std::vector<std::vector<std::vector<int>>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_vec_int , recv_vec_vvi.at(i)    ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vvi.at(i), data.at(i).vec_vec_int) << "source_proc = " << i;
+    }
+}
+
+TEST_F(AllGatherBasic, Str){
+    const int rank       = PS::Comm::getRank();
+    auto      recv_vec_s = COMM_TOOL::allGather(data[rank].vec_str.at(0));
+
+    static_assert(std::is_same<decltype(recv_vec_s), std::vector<std::string> >::value == true, "auto type check");
+
+    for(int i=0; i<n_proc; ++i){
+        EXPECT_EQ(recv_vec_s.at(i), data[i].vec_str.at(0)) << "source_proc = " << i;
     }
 }
 
 TEST_F(AllGatherBasic, VecStr){
     auto recv_vec_vs     = COMM_TOOL::allGather(data[id_proc].vec_str     );
+
+    static_assert(std::is_same<decltype(recv_vec_vs),
+                               std::vector<std::vector<std::string>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_str     , recv_vec_vs.at(i)     ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vs.at(i), data.at(i).vec_str) << "source_proc = " << i;
     }
 }
 
 TEST_F(AllGatherBasic, VecPairIntFloat){
     auto recv_vec_vp_i_f = COMM_TOOL::allGather(data[id_proc].vec_pair_i_f);
+
+    static_assert(std::is_same<decltype(recv_vec_vp_i_f),
+                               std::vector<std::vector<std::pair<int,
+                                                                 float>>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_pair_i_f, recv_vec_vp_i_f.at(i) ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vp_i_f.at(i), data.at(i).vec_pair_i_f) << "source_proc = " << i;
     }
 }
 
@@ -202,22 +229,35 @@ class AllGatherRecursive :
 //--- unit test definition, CANNOT use "_" in test/test_case name.
 TEST_F(AllGatherRecursive, VecVecVecInt){
     auto recv_vec_vvvi    = COMM_TOOL::allGather(data[id_proc].vec_vec_vec_int);
+
+    static_assert(std::is_same<decltype(recv_vec_vvvi),
+                               std::vector<std::vector<std::vector<std::vector<int>>>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_vec_vec_int, recv_vec_vvvi.at(i)    ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vvvi.at(i), data.at(i).vec_vec_vec_int) << "source_proc = " << i;
     }
 }
 
 TEST_F(AllGatherRecursive, VecVecStr){
     auto recv_vec_vvs     = COMM_TOOL::allGather(data[id_proc].vec_vec_str    );
+
+    static_assert(std::is_same<decltype(recv_vec_vvs),
+                               std::vector<std::vector<std::vector<std::string>>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_vec_str    , recv_vec_vvs.at(i)     ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vvs.at(i), data.at(i).vec_vec_str) << "source_proc = " << i;
     }
 }
 
 TEST_F(AllGatherRecursive, VecPairStrVecInt){
     auto recv_vec_vp_s_vi = COMM_TOOL::allGather(data[id_proc].vec_pair_s_vi  );
+
+    static_assert(std::is_same<decltype(recv_vec_vp_s_vi),
+                               std::vector<std::vector<std::pair<std::string,
+                                                                 std::vector<int>>>> >::value == true, "auto type check");
+
     for(int i=0; i<n_proc; ++i){
-        ASSERT_EQ(data.at(i).vec_pair_s_vi  , recv_vec_vp_s_vi.at(i) ) << "source_proc = " << i;
+        EXPECT_EQ(recv_vec_vp_s_vi.at(i), data.at(i).vec_pair_s_vi) << "source_proc = " << i;
     }
 }
 

@@ -1,7 +1,7 @@
 # md_fdps
 
 
-大規模N体シミュレーションフレームワーク[FDPS](https://github.com/FDPS/FDPS)を利用した汎用分子動力学シミュレーションコード実装
+大規模N体シミュレーションフレームワーク[FDPS](https://github.com/FDPS/FDPS)を利用した汎用の分子動力学シミュレータ実装
 
 ### 動作環境
 **C++11規格を使用**
