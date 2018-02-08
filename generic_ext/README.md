@@ -19,10 +19,14 @@ std::vector<> と同様のインターフェイスで使えるようにラップ
 
 #### COMM_TOOL
 std::vector<> をはじめとする，いくつかのSTLコンテナとその組み合わせについて，自動的に serialize, communicate, deserialize を行う．  
-`broadcast` , `allGather` , が使用可能．  
-具体的に利用可能なコンテナ，挙動は  
-`./unit_test/gtest_comm_tool_broadcast.cpp` および  
-`./unit_test/gtest_comm_tool_allGather.cpp` を参照．
+`broadcast` , `gather` , `allGather` , が使用可能．  
+具体的に利用可能なコンテナ，挙動はそれぞれ  
+```
+./unit_test/gtest_comm_tool_broadcast.cpp
+./unit_test/gtest_comm_tool_gather.cpp
+./unit_test/gtest_comm_tool_allGather.cpp
+```
+を参照．
 
 #### STR_TOOL
 `split(str, delim)` : `std::string` を指定の区切り文字で分割した `std::vector<std::string>` に変換する．  

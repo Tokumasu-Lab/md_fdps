@@ -60,8 +60,8 @@ $ mpirun -np 8 --bind-to-socket -npersocket 1 md_fdps.x
 ### 実装目標と現状
   - モデル，設定の読み込み
     - All-Atom, flexibleモデルのAr, 水，プロパノール2種，トルエンは付属 ( `./model/` )．
-    - モデルは任意に追加可能．追加したモデルで定義上のエラーがないかどうかは `$ make test_param` で生成される `./test_bin/test_param [model_name]` で確認する．  
-    - モデルを増やした際には `./script/convert_model_indicator.py` を実行して `./src/enum_model.hpp` を更新してからコードをコンパイルする．
+    - 分子モデルは任意に追加可能．
+    - 分子モデルを追加した際には `./script/convert_model_indicator.py` を実行して `./src/enum_model.hpp` を更新してからコードをコンパイルする．
   - Intra相互作用ペアのマネージャ
     - FullParticleクラスに持たせてFDPSによるMPI通信が可能な結合ペア保持用のクラス MD_EXT::basic_connect<> と，結合ペア情報から angle, torsion, mask の各リストを構築する関数オブジェクトを組み合わせて用いる．
     - 分子間相互作用に対する分子内 mask の係数および範囲はモデルごとに任意に設定可能
@@ -109,7 +109,7 @@ $ ./script/VMDmovie_convert.py
 `./unit_Test/gtest_***.cpp` の名前のテストコードでは [Google C++ Test framework](https://github.com/google/googletest) を使用している．  
 現状は version 1.8.0 を使用．
 
-付属の `makefile` あるいは実行スクリプト `.gtest_run.sh` を用いてユニットテストを実行する場合，環境変数として以下を設定する必要がある．
+付属の `makefile` あるいは実行スクリプト `./gtest_run.sh` を用いてユニットテストをコンパイル・実行する場合，環境変数として以下を設定する必要がある．
 ```
 export GTEST_ROOT=[Google C++ Test framework 本体の解凍後に cmake, make を実行したディレクトリ]
 ```
@@ -119,18 +119,17 @@ export GTEST_ROOT=[Google C++ Test framework 本体の解凍後に cmake, make �
 ```bash
 #--- 計算条件の読み込み
 $ make test_condition
-#--- 分子モデルの読み込み
+#--- 分子モデルパラメータの読み込みテスト
 $ make test_model
-#--- 分子モデルパラメータの確認
+#--- 分子内力パラメータの定義エラーテスト
 $ make test_param
 ```
 
 各ユニットテストの実行ファイルは `./test_bin/` 以下に生成される．
 上記のテストのうち，分子モデルのテストは引数に任意の分子モデル名を与えることで，あとから追加した分子モデルのテストも可能である．
 ```bash
-#--- モデルパラメータの読み込みテスト
 ./test_bin/test_model [model_name]
-#--- 分子内力パラメータの定義エラーテスト
+
 ./test_bin/test_param [model_name]
 ```
 ここで， `[model_name]` は `***.mol2` , `***.param` ファイルの拡張子を除いたファイル名の部分で，両方のパラメータファイルがセットになっている必要がある．
