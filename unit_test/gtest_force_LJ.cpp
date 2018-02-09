@@ -32,6 +32,9 @@ namespace TEST_DEFS {
 
     const PS::S32 data_field_len = 8;
 
+    const PS::F64 eps_abs = 1.e-5;
+    const PS::F64 eps_rel = 1.e-4;
+
     const std::string test_log_file{"test_bin/force_LJ_log.dat"};
     const std::string test_ref_file{"unit_test/ref/force_LJ_ref.dat"};
 };
@@ -73,8 +76,6 @@ void test_move(Tpsys &atom){
             //--- move for 2-body potential test (LJ, coulomb, bond)
             pos_tmp.x += 0.998/PS::F64(TEST_DEFS::n_loop);         //  setting test distance range (normalized)
         }
-
-        pos_tmp = Normalize::periodicAdjustNorm(pos_tmp);
         atom[i].setPos(pos_tmp);
     }
 }
@@ -194,10 +195,10 @@ TEST_F(TestForceLJ, force){
         EXPECT_FLOAT_EQ(force_log[i].pos.x, force_ref[i].pos.x) << " i= " << i;
         EXPECT_FLOAT_EQ(force_log[i].pos.y, force_ref[i].pos.y) << " i= " << i;
         EXPECT_FLOAT_EQ(force_log[i].pos.z, force_ref[i].pos.z) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].potential, force_ref[i].potential) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].force.x, force_ref[i].force.x) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].force.y, force_ref[i].force.y) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].force.z, force_ref[i].force.z) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(force_log[i].potential, force_ref[i].potential, TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(force_log[i].force.x  , force_ref[i].force.x  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(force_log[i].force.y  , force_ref[i].force.y  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(force_log[i].force.z  , force_ref[i].force.z  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
     }
 }
 

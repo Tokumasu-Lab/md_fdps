@@ -117,6 +117,8 @@ int main(int argc, char* argv[]){
     //--- devide atom particle in MPI processes
     System::InitDinfo(dinfo);
     dinfo.decomposeDomainAll(atom);
+
+    atom.adjustPositionIntoRootDomain(dinfo);
     atom.exchangeParticle(dinfo);
 
     //--- initialize force culculator
@@ -180,6 +182,7 @@ int main(int argc, char* argv[]){
         //--- drift
         //drift(System::get_dt(), atom);
         ext_sys_controller.drift(System::get_dt(), atom);
+        atom.adjustPositionIntoRootDomain(dinfo);
 
         //--- exchange particle
     //    if( System::isDinfoUpdate() ){

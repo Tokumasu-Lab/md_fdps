@@ -80,7 +80,6 @@ void test_move(Tpsys &atom){
             pos_tmp.x += 0.998/PS::F64(TEST_DEFS::n_loop);         //  setting test distance range (normalized)
         }
 
-        pos_tmp = Normalize::periodicAdjustNorm(pos_tmp);
         atom[i].setPos(pos_tmp);
     }
 }

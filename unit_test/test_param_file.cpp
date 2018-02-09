@@ -275,6 +275,7 @@ int main(int argc, char *argv[]) {
     test_atom.setNumberOfParticleLocal(0);
 
     test_init();
+    System::InitDinfo(dinfo);
 
     if(PS::Comm::getRank() == 0) {
         //--- molecular model loading test
@@ -323,6 +324,7 @@ int main(int argc, char *argv[]) {
                                      System::get_ex_radius(),
                                      System::get_try_limit(),
                                      0.0);
+            test_atom.adjustPositionIntoRootDomain(dinfo);
 
             //--- tree data for use as temporary
             EP_intra::setRcut( Normalize::normCutOff(9.0) );

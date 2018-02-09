@@ -76,7 +76,7 @@ namespace Initialize {
             if( MD_DEFS::isFind_mask(mask_list, psys[i].getAtomID()) ) continue;
 
             PS::F64vec r_vec = psys[i].getPos() - pos_new;
-                       r_vec = Normalize::periodicAdjustNorm(r_vec);
+                       r_vec = Normalize::relativePosAdjustNorm(r_vec);
             PS::F64    r2    = r_vec*r_vec;
 
             if(r2 <= r2_ex){

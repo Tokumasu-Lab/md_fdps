@@ -54,7 +54,6 @@ void test_move(Tpsys &atom){
         }
 
         pos_tmp = Normalize::normPos(pos_tmp);
-        pos_tmp = Normalize::periodicAdjustNorm(pos_tmp);
         atom[i].setPos(pos_tmp);
     }
 }

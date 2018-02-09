@@ -141,6 +141,7 @@ void execute_force_calc(Tptcl              &atom,
 
         //--- move
         test_move(atom);
+        atom.adjustPositionIntoRootDomain(dinfo);
 
         //--- nest step
         System::StepNext();

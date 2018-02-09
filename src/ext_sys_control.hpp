@@ -381,6 +381,8 @@ namespace EXT_SYS {
                                 Tpsys   &psys){
         ATOM_MOVE::kick(dt, psys);
     }
+
+    //--- after calling drift(), must call psys.adjustPositionIntoRootDomain(dinfo);
     template <class Tpsys>
     PS::F64 Controller::drift(const PS::F64 &dt,
                                     Tpsys   &psys){
@@ -401,7 +403,7 @@ namespace EXT_SYS {
         for(PS::F64 i=0; i<n_local; ++i){
             PS::F64vec move    = psys[i].getVel()*b;
             PS::F64vec pos_new = psys[i].getPos() + Normalize::normDrift(move*a2);
-                       pos_new = Normalize::periodicAdjustNorm(pos_new);
+            
             psys[i].addTrj(move);
             psys[i].setPos(pos_new);
 

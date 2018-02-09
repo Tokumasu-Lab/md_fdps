@@ -134,6 +134,8 @@ void SetUp_atom_data(PS::DomainInfo              &dinfo,
     //--- devide atom particle in MPI processes
     System::InitDinfo(dinfo);
     dinfo.decomposeDomainAll(atom);
+
+    atom.adjustPositionIntoRootDomain(dinfo);
     atom.exchangeParticle(dinfo);
 
     //--- initialize force culculator

@@ -157,31 +157,6 @@ namespace Normalize {
         return r*3.0;
     }
 
-    //! @brief adjustment position into normalized periodic boundary system [0.0 ~ 1.0).
-    template <class Tf>
-    PS::Vector3<Tf> periodicAdjustNorm(const PS::Vector3<Tf> &pos_norm){
-        PS::Vector3<Tf> pos_new = pos_norm;
-        if(pos_new.x < 0.0)  pos_new.x += 1.0;
-        if(pos_new.y < 0.0)  pos_new.y += 1.0;
-        if(pos_new.z < 0.0)  pos_new.z += 1.0;
-        if(pos_new.x >= 1.0) pos_new.x -= 1.0;
-        if(pos_new.y >= 1.0) pos_new.y -= 1.0;
-        if(pos_new.z >= 1.0) pos_new.z -= 1.0;
-        return pos_new;
-    }
-    //! @brief adjustment position into real periodic boundary system [0.0 ~ getBoxSize() ).
-    template <class Tf>
-    PS::Vector3<Tf> periodicAdjustReal(const PS::Vector3<Tf> &pos_real){
-        PS::Vector3<Tf> pos_new = pos_real;
-        if(pos_new.x <  0.0     ) pos_new.x += boxdh_.x;
-        if(pos_new.y <  0.0     ) pos_new.y += boxdh_.y;
-        if(pos_new.z <  0.0     ) pos_new.z += boxdh_.z;
-        if(pos_new.x >= boxdh_.x) pos_new.x -= boxdh_.x;
-        if(pos_new.y >= boxdh_.y) pos_new.y -= boxdh_.y;
-        if(pos_new.z >= boxdh_.z) pos_new.z -= boxdh_.z;
-        return pos_new;
-    }
-
     //! @brief adjustment relative position into normalized periodic boundary system [-0.5 ~ 0.5).
     template <class Tf>
     PS::Vector3<Tf> relativePosAdjustNorm(const PS::Vector3<Tf> &pos_norm){

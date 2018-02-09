@@ -32,6 +32,7 @@ namespace ATOM_MOVE {
         }
     }
 
+    //--- after calling drift(), must call psys.adjustPositionIntoRootDomain(dinfo);
     template<class Tpsys>
     PS::F64 drift(const PS::F64 &dt,
                         Tpsys   &psys){
@@ -42,7 +43,7 @@ namespace ATOM_MOVE {
             PS::F64vec move    = psys[i].getVel()*dt;
             PS::F64vec pos_new = psys[i].getPos() + Normalize::normDrift(move);
             psys[i].addTrj( move );
-            psys[i].setPos( Normalize::periodicAdjustNorm(pos_new) );
+            psys[i].setPos( pos_new );
 
             //--- check largest move at step
             move     = Normalize::normDrift(move);
