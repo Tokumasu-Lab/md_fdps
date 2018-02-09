@@ -6,8 +6,9 @@
 CXX = mpicxx
 
 CPPFLAGS = -lm -std=c++11 -MMD
-#CPPFLAGS += -O3 -ffast-math -funroll-loops
-CPPFLAGS += -O0 -Wall -g3
+#CPPFLAGS += -O3 -ffast-math -funroll-loops -g3
+CPPFLAGS += -Og -Wall -g3
+#CPPFLAGS += -O0 -Wall -g3
 
 #--- parallelization flag for FDPS
 #CPPFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp

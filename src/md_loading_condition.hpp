@@ -100,9 +100,12 @@ namespace System {
 
         if(file_sys.fail()) throw std::ios_base::failure("file: " + file_name + " was not found.");
 
-        //--- temporary value
-        PS::S64 n_chain, n_rep, n_nys;
-        PS::F64 NVT_freq, NPT_freq;
+        //--- temporary value (illigal parameter)
+        PS::S32 n_chain  = -1;
+        PS::S32 n_rep    = -1;
+        PS::S32 n_nys    = -1;
+        PS::F64 NVT_freq = -1.0;
+        PS::F64 NPT_freq = -1.0;
 
         CONDITION_LOAD_MODE mode = CONDITION_LOAD_MODE::time_step;
         while ( getline(file_sys, line) ) {

@@ -112,43 +112,41 @@ namespace Initialize {
         return index_list.end();
     }
 
-    template <class Trand, class Tdist, class Tblz>
-    PS::F64vec calc_vel(const PS::F64 &temperature,
-                        const PS::F64 &mass,
-                              Trand   &rand,
-                              Tdist   &dist,
-                              Tblz    &blz         ){
+    template <class Trand>
+    PS::F64vec calc_vel(const PS::F64                                 &temperature,
+                        const PS::F64                                 &mass,
+                              Trand                                   &rand,
+                              std::uniform_real_distribution<PS::F64> &dist,
+                              MD_EXT::boltzmann_dist                  &blz  ){
 
         //--- intensity
         PS::F64    dev = std::sqrt( 2.0*(temperature/Unit::norm_temp)/mass );
         PS::F64vec v   = 0.0;
 
-        v.x = dev*blz.gen( PS::F64(dist(rand)) );
+        v.x = dev*blz.gen( dist(rand) );
 
         //--- direction
-        v = VEC_EXT::rot_z(v, Unit::pi*PS::F64(dist(rand)) );  // rotate in z-y-z Euler angle
-        v = VEC_EXT::rot_y(v, Unit::pi*PS::F64(dist(rand)) );
-        v = VEC_EXT::rot_z(v, Unit::pi*PS::F64(dist(rand)) );
+        v = VEC_EXT::rot_z(v, Unit::pi*dist(rand) );  // rotate in z-y-z Euler angle
+        v = VEC_EXT::rot_y(v, Unit::pi*dist(rand) );
+        v = VEC_EXT::rot_z(v, Unit::pi*dist(rand) );
 
         return v;
     }
 
-    template <class Tpsys,
-              class Tptcl,
-              class Trand, class Tdist, class Tblz>
-    void install_molecule(      Tpsys                          &psys,
-                          const std::vector<Tptcl>             &model_template,
-                          const PS::F64                         ex_r_norm,
-                                MD_EXT::CellIndex<size_t>      &cell_index_inter,
-                                MD_EXT::CellIndex<size_t>      &cell_index_intra,
-                          const size_t                          try_limit,
-                          const std::vector<MD_DEFS::MaskList> &collision_mask_template,
-                          const PS::F64                         temperature,
-                                Trand                          &rand,
-                                Tdist                          &dist,
-                                Tblz                           &blz,
-                          const MD_DEFS::ID_type                atom_inclement,
-                          const MD_DEFS::ID_type                mol_inclement){
+    template <class Tpsys, class Tptcl, class Trand >
+    void install_molecule(      Tpsys                                   &psys,
+                          const std::vector<Tptcl>                      &model_template,
+                          const PS::F64                                  ex_r_norm,
+                                MD_EXT::CellIndex<size_t>               &cell_index_inter,
+                                MD_EXT::CellIndex<size_t>               &cell_index_intra,
+                          const size_t                                   try_limit,
+                          const std::vector<MD_DEFS::MaskList>          &collision_mask_template,
+                          const PS::F64                                  temperature,
+                                Trand                                   &rand,
+                                std::uniform_real_distribution<PS::F64> &dist,
+                                MD_EXT::boltzmann_dist                  &blz,
+                          const MD_DEFS::ID_type                         atom_inclement,
+                          const MD_DEFS::ID_type                         mol_inclement){
 
         size_t try_count = 0;
 
@@ -174,9 +172,9 @@ namespace Initialize {
         //--- setting position
         for(; try_count<=try_limit; ++try_count){
             PS::F64vec pos_root = { dist(rand), dist(rand), dist(rand) };  // normalized
-            PS::F64    rot_1    = Unit::pi*PS::F64(dist(rand));
-            PS::F64    rot_2    = Unit::pi*PS::F64(dist(rand));
-            PS::F64    rot_3    = Unit::pi*PS::F64(dist(rand));
+            PS::F64    rot_1    = Unit::pi*dist(rand);
+            PS::F64    rot_2    = Unit::pi*dist(rand);
+            PS::F64    rot_3    = Unit::pi*dist(rand);
 
             //--- set new position of atom (root pos + local_pos)
             cell_index_intra.clear();
@@ -296,10 +294,10 @@ namespace Initialize {
         std::cout << " Initialize: total atoms = " << n_total << std::endl;
 
         //--- initialize random number & distribution generator
-        constexpr int                    seed = std::pow(2, 19) + 1;
-        std::mt19937_64                  mt(seed);
-        std::uniform_real_distribution<> dist(0.0, 1.0);   // [0.0, 1.0)
-        MD_EXT::boltzmann_dist           blz_dist;
+        constexpr int                           seed = std::pow(2, 19) + 1;
+        std::mt19937_64                         mt(seed);
+        std::uniform_real_distribution<PS::F64> dist(0.0, 1.0);   // [0.0, 1.0)
+        MD_EXT::boltzmann_dist                  blz_dist;
 
         //--- initialize cell index neigbor list
         MD_EXT::CellIndex<size_t> cell_index_inter;

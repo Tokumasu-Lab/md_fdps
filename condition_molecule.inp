@@ -10,11 +10,11 @@
 //          n_molecule [integer]
 //=====================================================================
 @<CONDITION>MOLECULE
-AA_C6H5_CH3        40
-AA_propan_2_ol     40
-AA_propan_1_ol     40
+AA_C6H5_CH3        80
+AA_propan_2_ol     80
+AA_propan_1_ol     80
 AA_wat_aSPC_Fw      0
-AA_wat_SPC_Fw      40
+AA_wat_SPC_Fw     200
 AA_Ar               0  // 860
 
 //=====================================================================
@@ -22,7 +22,7 @@ AA_Ar               0  // 860
 //      x, y, z [angstrom]   must be  x=y=z (restricted by PS::ParticleMesh)
 //=====================================================================
 @<CONDITION>BOX
-80  80  80
+100  100  100
 
 //=====================================================================
 //  setting of initializer:
@@ -30,4 +30,4 @@ AA_Ar               0  // 860
 //      try_limit [intger]    max number of trying to insert molecule.
 //=====================================================================
 @<CONDITION>EX_RADIUS
-6.0   5000
+5.0   5000
