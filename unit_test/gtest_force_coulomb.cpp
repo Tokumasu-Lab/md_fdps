@@ -90,6 +90,32 @@ public:
     PS::F32vec pos;
     PS::F32    potential;
     PS::F32vec force;
+
+    bool read_line(std::string line){
+        STR_TOOL::removeCR(line);
+        const auto str_list = STR_TOOL::split(line, " ");
+
+        if(str_list.size() < TEST_DEFS::data_field_len) return false;
+        if( !STR_TOOL::isInteger(str_list[0]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[1]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[2]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[3]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[4]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[5]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[6]) )         return false;
+        if( !STR_TOOL::isNumeric(str_list[7]) )         return false;
+
+        this->count = std::stoi(str_list[0]);
+        this->pos   = PS::F32vec{ std::stof(str_list[1]),
+                                  std::stof(str_list[2]),
+                                  std::stof(str_list[3]) };
+        this->potential = std::stof(str_list[4]);
+        this->force     = PS::F32vec{ std::stof(str_list[5]),
+                                      std::stof(str_list[6]),
+                                      std::stof(str_list[7]) };
+
+        return true;
+    }
 };
 std::ostream& operator << (std::ostream &s, const ForceData &d){
     s << std::setw(10) << d.count << " "
@@ -101,32 +127,6 @@ std::ostream& operator << (std::ostream &s, const ForceData &d){
       << std::setw(15) << std::scientific << std::setprecision(8) << d.force.y << " "
       << std::setw(15) << std::scientific << std::setprecision(8) << d.force.z << "\n";
     return s;
-}
-
-void read_ref_data(const std::vector<std::string> &str_list,
-                         std::vector<ForceData>   &data_list){
-
-    if(str_list.size() < TEST_DEFS::data_field_len) return;
-    if( !STR_TOOL::isInteger(str_list[0]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[1]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[2]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[3]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[4]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[5]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[6]) ) return;
-    if( !STR_TOOL::isNumeric(str_list[7]) ) return;
-
-    ForceData tmp;
-    tmp.count = std::stoi(str_list[0]);
-    tmp.pos   = PS::F32vec{ std::stof(str_list[1]),
-                            std::stof(str_list[2]),
-                            std::stof(str_list[3]) };
-    tmp.potential = std::stof(str_list[4]);
-    tmp.force     = PS::F32vec{ std::stof(str_list[5]),
-                                std::stof(str_list[6]),
-                                std::stof(str_list[7]) };
-
-    data_list.push_back(tmp);
 }
 
 template <class Tptcl, class Tlog>
@@ -179,18 +179,15 @@ public:
             test_model_setting();
             test_atom_setting(atom);
         }
-
-        execute_force_calc(atom, dinfo, force, force_log, force_ref);
-
-        //--- write test result
-        write_log_file(force_log, TEST_DEFS::test_log_file);
-
-        //--- load reference result
-        load_log_file(force_ref, TEST_DEFS::test_ref_file);
     }
 };
 
 TEST_F(TestForceCoulomb, force){
+    execute_force_calc(atom, dinfo, force, force_log, force_ref);
+
+    write_log_file(TEST_DEFS::test_log_file, force_log);
+    load_log_file( TEST_DEFS::test_ref_file, force_ref);
+
     EXPECT_EQ(force_log.size(), force_ref.size());
     const PS::S32 n = std::min(force_log.size(), force_ref.size());
 

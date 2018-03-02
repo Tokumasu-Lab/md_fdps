@@ -7,7 +7,7 @@
 **C++11規格を使用**
 
 開発に使用している環境は
-  - FDPS 4.0b (2018/1/16)
+  - FDPS 4.0b (2018/2/7)
   - GCC 6.3.0
   - OpenMPI 2.1.1
   - FFTw 3.3.6  
@@ -50,34 +50,38 @@ $ mpirun -np [n_proc] ./md_fdps.x
 #### Hybrid並列実行について
 コンパイルオプションに `-DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp` を追加する．(MPIは必須)
 
-OpenMPI-2.1.1 + OpenMP のHybrid並列化で，Xeon E5-2690v3 (12core) を 2CPU のノード4台で各CPUにMPIプロセスを1つ配置し，CPU内部ではOpenMP並列化をおこなう場合の実行コマンドは下記のようになる．
+OpenMPI-2.1.1 + OpenMP のHybrid並列化で，Xeon E5-2690v3 (12core) を 2CPU のノード4台 (合計8CPU) で各CPUにMPIプロセスを1つ配置し，CPU内部ではOpenMP並列化 (各12スレッド) をおこなう場合の実行コマンドは下記のようになる．
 ```
-$ export OMP_NUM_THREADS=12
-$ mpirun -np 8 --bind-to-socket -npersocket 1 md_fdps.x
+$ mpirun -np 8 --bind-to-socket -npersocket 1 -x OMP_NUM_THREADS=12 md_fdps.x
 ```
-現状の実装では分子内力の最適化が進んでいないため，Hybrid化しない方が速い．
+現状の実装では，メモリ容量や通信量の削減の必要が出ない限りHybrid化せず flat-MPI で実行したほうが速い．
 
 ### 実装目標と現状
   - モデル，設定の読み込み
     - All-Atom, flexibleモデルのAr, 水，プロパノール2種，トルエンは付属 ( `./model/` )．
     - 分子モデルは任意に追加可能．
-    - 分子モデルを追加した際には `./script/convert_model_indicator.py` を実行して `./src/enum_model.hpp` を更新してからコードをコンパイルする．
+    - 分子モデルを追加した際には `./script/convert_model_indicator.py` を実行して  
+    `./src/enum_model.hpp` を更新してからコードをコンパイルする．
   - Intra相互作用ペアのマネージャ
-    - FullParticleクラスに持たせてFDPSによるMPI通信が可能な結合ペア保持用のクラス MD_EXT::basic_connect<> と，結合ペア情報から angle, torsion, mask の各リストを構築する関数オブジェクトを組み合わせて用いる．
+    - FullParticleクラスに持たせてFDPSによるMPI通信が可能な結合ペア保持用のクラス MD_EXT::basic_connect<> と，  
+    結合ペア情報から angle, torsion, mask の各リストを構築する関数オブジェクトを組み合わせて用いる．
     - 分子間相互作用に対する分子内 mask の係数および範囲はモデルごとに任意に設定可能
     - 具体的な挙動は Doxygenコメントおよび `./unit_test/gtest_intra_pair.cpp` を参照．
   - 系の初期状態の作成
     - 初期状態の作成は `md_init.x` で行い，出力された resume データを `md_fdps.x` で読み込む．
-    - `./condition_molecule.inp` で指定された分子を指定の個数，指定の分子間距離でランダムに配置し，指定の温度に相当するマクスウェル・ボルツマン速度分布を与える．
-  - resume データの出力およびシミュレーションの続行
+    - `./condition_molecule.inp` で指定された分子を指定の個数，指定の分子間距離でランダムに配置し，  
+     `./condition_sequence.inp` の 0 step 目に相当する温度のマクスウェル・ボルツマン速度分布を与える．
+  - resume データの出力およびシミュレーションの再開
     - ascii形式単一ファイル入出力, 浮動小数点は丸め処理を避けるため16進数表記
   - 基本的な古典相互作用
-    - LJ
-    - Coulomb
-    - Bond
-    - Angle
-    - dihedral torsion
-    - improper torsion
+    - 分子間：
+      - LJ
+      - Coulomb
+    - 分子内：
+      - Bond
+      - Angle
+      - dihedral torsion
+      - improper torsion
   - 基本的な時間積分
     - velocity verlet
   - 基本的な拡張系制御
@@ -89,7 +93,7 @@ $ mpirun -np 8 --bind-to-socket -npersocket 1 md_fdps.x
   - 基本的な可視化
     - VMD
 
-コメントを[Doxygen](http://www.doxygen.jp)に対応するフォーマットに変更中
+一部のコメントで[Doxygen](http://www.doxygen.jp)に対応
 
 ### VMDによる動画作成
 `md_fdps.x` を実行し，`./pdb` ， `./posdata` が生成されたものとする．  
@@ -133,6 +137,11 @@ $ make test_param
 ./test_bin/test_param [model_name]
 ```
 ここで， `[model_name]` は `***.mol2` , `***.param` ファイルの拡張子を除いたファイル名の部分で，両方のパラメータファイルがセットになっている必要がある．
+
+### 機能実験用の定義済マクロ
+- REUSE_INTRA_LIST
+  - 分子内ペアリストの構築を毎ステップではなく cycle_dinfo 回使いまわす．  
+    PS::ParticleMesh との相性が悪く，併用すると系が爆発する．
 
 ### Contact
 東北大学　流体科学研究所  

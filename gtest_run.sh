@@ -1,8 +1,11 @@
 #!/bin/bash -e
 
+#--- setting for debug of the test codes.
+export GTEST_CATCH_EXCEPTIONS=0
+
 usage_exit() {
 	echo "Usage: $0 [-j n_core] [-m n_mpi] [-o n_omp]"
-	echo "    n_core: # of core for make. used as 'make -j n_core'."
+	echo "    n_core: # of core for make. used as 'make -j n_core' internally."
 	echo "    n_mpi : # of process for MPI."
 	echo "    n_omp : # of threads for OpenMP."
 	exit 1
@@ -41,8 +44,10 @@ ${EXE_DIR}/gtest_vec_ext
 #--- COMM_TOOL::
 ${EXE_DIR}/gtest_comm_tool_SerDes
 mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_broadcast
-mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_allGather
 mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_gather
+mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_scatter
+mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_allGather
+mpirun -np ${MPI_NUM} ${EXE_DIR}/gtest_comm_tool_allToAll
 
 #--- MD_EXT::boltzmann_dist
 ${EXE_DIR}/gtest_blz_dist

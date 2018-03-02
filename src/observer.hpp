@@ -15,15 +15,13 @@
 #include <molecular_dynamics_ext.hpp>
 
 #include "unit.hpp"
-#include "file_printer.hpp"
-
 
 namespace Observer {
 
     class Energy {
     private:
-        FilePrinter printer;
-        PS::S64     start   = std::numeric_limits<PS::S64>::max();
+        FS_TOOL::FilePrinter printer;
+        PS::S64              start   = std::numeric_limits<PS::S64>::max();
 
     public:
         PS::F64 bond;
@@ -251,8 +249,8 @@ namespace Observer {
 
     class Property {
     private:
-        FilePrinter printer;
-        PS::S64     start   = std::numeric_limits<PS::S64>::max();
+        FS_TOOL::FilePrinter printer;
+        PS::S64              start   = std::numeric_limits<PS::S64>::max();
 
     public:
         PS::F64 temperature;

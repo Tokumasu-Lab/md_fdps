@@ -85,11 +85,15 @@ int main(int argc, char *argv[]) {
     //--- devide atom particle in MPI processes
     System::InitDinfo(dinfo);
     dinfo.decomposeDomainAll(atom);
-    
+
     atom.adjustPositionIntoRootDomain(dinfo);
     atom.exchangeParticle(dinfo);
 
-    std::cout << "proc = " << PS::Comm::getRank() << " / atoms = " << atom.getNumberOfParticleLocal() << std::endl;
+    std::ostringstream oss;
+    oss << "  Rank = "    << PS::Comm::getRank()
+        << ": n_local = " << atom.getNumberOfParticleLocal()
+        << " / total = "  << atom.getNumberOfParticleGlobal() << "\n";
+    std::cout << oss.str() << std::flush;
 
     //--- output resume file
     System::profile.istep = 0;

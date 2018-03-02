@@ -26,11 +26,12 @@
 //------ connection
 class AtomIntraMask :
   public AtomID {
-  public:
+  private:
     //--- static data for intra mask
     static std::unordered_map< MD_DEFS::ID_type,
                                MD_DEFS::MaskList > intra_mask_table;
 
+  public:
     template <class Tptcl>
     void copyAtomIntraMask(const Tptcl &fp){
         this->copyAtomID(fp);
@@ -44,6 +45,14 @@ class AtomIntraMask :
     }
     inline bool isFind_mask(const MD_DEFS::ID_type id_j) const {
         return MD_DEFS::isFind_mask(this->mask_list(), id_j);
+    }
+
+    static void clear_mask_table(){
+        intra_mask_table.clear();
+    }
+    static void reserve_mask_table(const PS::S64 n, const PS::F32 factor = 0.7){
+        intra_mask_table.max_load_factor(factor);
+        intra_mask_table.reserve(n);
     }
 };
 std::unordered_map< MD_DEFS::ID_type,
@@ -69,12 +78,14 @@ class AtomConnect :
         }
     }
 
+  private:
     //--- static data for intra pair table
     static std::unordered_map< MD_DEFS::ID_type,
                                std::tuple<MD_DEFS::AngleList,
                                           MD_DEFS::TorsionList,
                                           MD_DEFS::TorsionList> > intra_pair_table;
 
+  public:
     MD_DEFS::AngleList&   angle_list()   { return std::get<0>(this->intra_pair_table[this->getId()]); }
     MD_DEFS::TorsionList& dihedral_list(){ return std::get<1>(this->intra_pair_table[this->getId()]); }
     MD_DEFS::TorsionList& improper_list(){ return std::get<2>(this->intra_pair_table[this->getId()]); }
@@ -88,6 +99,16 @@ class AtomConnect :
         this->angle_list().clear();
         this->dihedral_list().clear();
         this->improper_list().clear();
+    }
+
+    static void clear_intra_pair_table(){
+        intra_pair_table.clear();
+        AtomIntraMask::clear_mask_table();
+    }
+    static void reserve_intra_pair_table(const PS::S64 n, const PS::F32 factor = 0.7){
+        intra_pair_table.max_load_factor(factor);
+        intra_pair_table.reserve(n);
+        AtomIntraMask::reserve_mask_table(n, factor);
     }
 };
 std::unordered_map< MD_DEFS::ID_type,
@@ -155,11 +176,11 @@ class Force_FP :
 class Atom_FP :
   public AtomType,
   public AtomConnect,
-  public AtomPos<PS::F32>,
-  public AtomVel<PS::F32>,
+  public AtomPos   <PS::F32>,
+  public AtomVel   <PS::F32>,
   public AtomCharge<PS::F32>,
-  public AtomVDW<PS::F32>,
-  public Force_FP<PS::F32> {
+  public AtomVDW   <PS::F32>,
+  public Force_FP  <PS::F32> {
   public:
 
     //--- output interaction result
@@ -260,9 +281,9 @@ std::ostream& operator << (std::ostream &s, const Atom_FP &atom){
 class EP_inter :
   public AtomIntraMask,
   public AtomType,
-  public AtomPos<PS::F32>,
+  public AtomPos   <PS::F32>,
   public AtomCharge<PS::F32>,
-  public AtomVDW<PS::F32> {
+  public AtomVDW   <PS::F32> {
   private:
     static PS::F32 Rcut;
     static PS::F32 Rcut_LJ;

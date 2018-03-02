@@ -91,6 +91,20 @@ TEST(FixedVector, edit){
         EXPECT_EQ(vec2.at(i), vec.at(i));
     }
 
+    vec.insert(vec.begin()+2, -1);
+    EXPECT_EQ(vec.size(), 5);
+    EXPECT_EQ(vec.at(0) ,  0);
+    EXPECT_EQ(vec.at(1) ,  1);
+    EXPECT_EQ(vec.at(2) , -1);
+    EXPECT_EQ(vec.at(3) ,  2);
+    EXPECT_EQ(vec.at(4) ,  3);
+
+    vec.erase(vec.begin()+2);
+    EXPECT_EQ(vec2.size(), vec.size());
+    for(size_t i=0; i<vec2.size(); ++i){
+        EXPECT_EQ(vec2.at(i), vec.at(i));
+    }
+
     vec.pop_back();
     EXPECT_EQ(vec.size(), 3);
     EXPECT_THROW(vec.at(3), std::out_of_range);
@@ -127,7 +141,11 @@ TEST(FixedVector, resize){
         }
     }
 
-    EXPECT_THROW(vec1.resize(32), std::length_error);
+    EXPECT_THROW(vec1.resize(32),  std::length_error);
+
+    //--- capacity check only
+    EXPECT_THROW(vec1.reserve(32), std::length_error);
+    EXPECT_NO_THROW(vec1.shrink_to_fit());
 }
 
 TEST(FixedVector, compare){

@@ -13,24 +13,33 @@ FDPSに付属する PS::Vector3<> の拡張．
 `rot_x(v, f)`, `rot_y(v, f)`, `rot_z(v, f)` : X, Y, Z各軸周りの回転  
 を追加する．
 
-#### MD_EXT::fixed_vector<>
-std::vector<> と同様のインターフェイスで使えるようにラップした std::array<>.  
+#### MD_EXT::fixed_vector<T,S>
+std::vector<T> と同様のインターフェイスで使えるようにラップした std::array<T,S>.  
 定義時に指定したサイズまでしか伸長できないがFullParticleなどのMPI通信でやり取りされるデータクラス内にそのまま定義できる．  
 
 #### COMM_TOOL
 std::vector<> をはじめとする，いくつかのSTLコンテナとその組み合わせについて，自動的に serialize, communicate, deserialize を行う．  
-`broadcast` , `gather` , `allGather` , が使用可能．  
+基本的な集団通信 `broadcast()` , `gather()` , `scatter()` , `allGather()` , `allToAll()` , が使用可能．  
 具体的に利用可能なコンテナ，挙動はそれぞれ  
 ```
 ./unit_test/gtest_comm_tool_broadcast.cpp
 ./unit_test/gtest_comm_tool_gather.cpp
+./unit_test/gtest_comm_tool_scatter.cpp
 ./unit_test/gtest_comm_tool_allGather.cpp
+./unit_test/gtest_comm_tool_allToAll.cpp
 ```
-を参照．
+を参照．  
+より複雑なデータ構造，あるいは通信性能の最適化が必要な場合は [boost.MPI](https://boostjp.github.io/tips/mpi.html) および [boost.Serialization](https://boostjp.github.io/tips/serialize.html) の利用を推奨．
 
 #### STR_TOOL
 `split(str, delim)` : `std::string` を指定の区切り文字で分割した `std::vector<std::string>` に変換する．  
 `removeCR(str)` : Windowsで編集したテキストファイルの行末に追加される CR コードを除去する．
+
+#### FS_TOOL
+ファイル出力用の汎用ツール．  
+`make_directory(dir_name, rank)` : ディレクトリ `dir_name` が存在しない場合に新規作成する．  
+`FilePrinter` : 出力ファイルの管理用クラス．担当する `rank` からの入力のみをファイルに出力する．  
+`file_load(file_name, data_list, rank)` : `file_name` の各行ごとに `std::vector<T>` に読み込んだ `data_list` を作成する．行の読み込みは `void read_line(str)` 関数をデータ型に用意しておく．あるいは `std::vector<std::string>` であれば各行ごとにそのまま格納される．
 
 #### hash_tuple
 `std::tuple<>` を `std::unordered_set<>` , `std::unoudered_map<>` のキーとして使用するためのハッシュ関数を提供する．  

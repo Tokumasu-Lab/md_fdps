@@ -16,9 +16,9 @@ namespace FORCE {
 
     template<class Tepi, class Ttree,
              class Tforce>
-    void calcForceIntra_IA(const Tepi   &ep_i,
-                                 Ttree  &tree,
-                                 Tforce &force_IA){
+    void calcForceBond_IA(const Tepi   &ep_i,
+                                Ttree  &tree,
+                                Tforce &force_IA){
 
         //--- bond potential
         for(const auto& id_j : ep_i.bond){
@@ -60,6 +60,13 @@ namespace FORCE {
                     throw std::invalid_argument("undefined function form: " + ENUM::what(bond_prm.form) + " at bond force.");
             }
         }
+    }
+
+    template<class Tepi, class Ttree,
+             class Tforce>
+    void calcForceAngle_IA(const Tepi   &ep_i,
+                                 Ttree  &tree,
+                                 Tforce &force_IA){
 
         //--- angle potential
         for(const auto& angle_set : ep_i.angle_list()){
@@ -107,6 +114,13 @@ namespace FORCE {
                     throw std::invalid_argument("undefined function form: " + ENUM::what(angle_prm.form) + " at angle force");
             }
         }
+    }
+
+    template<class Tepi, class Ttree,
+             class Tforce>
+    void calcForceTorsion_IA(const Tepi   &ep_i,
+                                   Ttree  &tree,
+                                   Tforce &force_IA){
 
         //--- dihedral torsion potential
         for(const auto& dihedral_set : ep_i.dihedral_list()){
@@ -237,28 +251,32 @@ namespace FORCE {
 
 
     //--- template function for FDPS interface
-    template <class Tforce,
-              class Ttree, class Tpsys, class Tdinfo>
-    void calcForceIntra(Ttree  &tree,
-                        Tpsys  &atom,
-                        Tdinfo &dinfo){
-
-        //--- get neighbor EP_intra information (do not calculate force)
-        tree.calcForceAll( IntraPair::dummy_func{}, atom, dinfo);
+    template <class TSM, class Tforce, class Tepi, class Tepj, class Tmomloc, class Tmomglb, class Tspj,
+              class Tpsys>
+    void calcForceIntra(PS::TreeForForce<TSM,
+                                         Tforce,
+                                         Tepi,
+                                         Tepj,
+                                         Tmomloc,
+                                         Tmomglb,
+                                         Tspj    > &tree,
+                        Tpsys                      &atom ){
 
         const PS::S64 n_local = atom.getNumberOfParticleLocal();
 
+        Tforce force_IA;
+
         //--- calculate intramolecular force
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for private(force_IA)
+        #endif
         for(PS::S64 i=0; i<n_local; ++i){
+            force_IA.clear();
 
-            //--- skip no-bonded atoms
-            if( atom[i].bond.size() == 0 ) continue;
+            calcForceBond_IA(   atom[i], tree, force_IA);
+            calcForceAngle_IA(  atom[i], tree, force_IA);
+            calcForceTorsion_IA(atom[i], tree, force_IA);
 
-            Tforce force_IA;
-                   force_IA.clear();
-            calcForceIntra_IA(atom[i],
-                              tree,
-                              force_IA);
             atom[i].copyForceIntra(force_IA);
         }
     }

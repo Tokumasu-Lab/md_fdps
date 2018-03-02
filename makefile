@@ -4,11 +4,15 @@
 
 #--- compiler settings
 CXX = mpicxx
+#CXX = mpiicpc
 
 CPPFLAGS = -lm -std=c++11 -MMD
-#CPPFLAGS += -O3 -ffast-math -funroll-loops -g3
+#CPPFLAGS += -O3 -ffast-math -funroll-loops -g
 CPPFLAGS += -Og -Wall -g3
 #CPPFLAGS += -O0 -Wall -g3
+
+#------ for mpiicpc
+#CPPFLAGS += -O3 -g
 
 #--- parallelization flag for FDPS
 #CPPFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
@@ -17,7 +21,7 @@ CPPFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
 #--- C++ compile target
 SRC_DIR = ./src
 SRC_CPP = $(SRC_DIR)/md_init.cpp $(SRC_DIR)/md_fdps.cpp
-INCLUDE = -I$(SRC_DIR)/ -I./generic_ext/
+INCLUDE = -I./generic_ext/
 
 #--- source by automatic code generator
 SRC_AUTO = $(SRC_DIR)/enum_model.hpp
@@ -89,7 +93,7 @@ GTEST_OBJS = $(addprefix $(GTEST_OBJDIR)/, $(notdir $(GTEST_SRCS:.cpp=.o) ) )
 GTEST_DEPS = $(GTEST_OBJS:.o=.d)
 GTEST_TGT  = $(addprefix $(GTEST_EXEDIR)/, $(notdir $(GTEST_SRCS:.cpp=) ) )
 
-GTEST_INCLUDE  = $(INCLUDE)
+GTEST_INCLUDE  = -I$(SRC_DIR) $(INCLUDE)
 GTEST_INCLUDE += -I$(GTEST_ROOT)/googletest/include
 
 GTEST_LIBS  = $(LIBS)
@@ -117,17 +121,17 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_AUTO)
 #=======================
 test_condition: ./unit_test/test_loading_condition.cpp $(SRC_AUTO)
 	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
-	$(CXX) $(INCLUDE) $(CPPFLAGS) $< -o $(GTEST_EXEDIR)/test_condition
+	$(CXX) -I$(SRC_DIR) $(INCLUDE) $(CPPFLAGS) $< -o $(GTEST_EXEDIR)/test_condition
 	mpirun -n 2 $(GTEST_EXEDIR)/test_condition
 
 test_model: ./unit_test/test_loading_model.cpp $(SRC_AUTO)
 	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
-	$(CXX) $(INCLUDE) $(CPPFLAGS) $< -DTEST_MOL_INSTALL -o $(GTEST_EXEDIR)/test_model
+	$(CXX) -I$(SRC_DIR) $(INCLUDE) $(CPPFLAGS) $< -DTEST_MOL_INSTALL -o $(GTEST_EXEDIR)/test_model
 	$(GTEST_EXEDIR)/test_model  AA_wat_SPC_Fw
 
 test_param: ./unit_test/test_param_file.cpp $(SRC_AUTO)
 	@[ -d $(GTEST_EXEDIR) ] || mkdir -p $(GTEST_EXEDIR)
-	$(CXX) $(INCLUDE) $(CPPFLAGS) $< -o $(GTEST_EXEDIR)/test_param
+	$(CXX) -I$(SRC_DIR) $(INCLUDE) $(CPPFLAGS) $< -o $(GTEST_EXEDIR)/test_param
 	$(GTEST_EXEDIR)/test_param  AA_C6H5_CH3
 
 

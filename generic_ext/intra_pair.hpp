@@ -1,5 +1,8 @@
 //***************************************************************************************
-//  This is the pair-ID data table class for calculate interactions.
+/**
+* @file    intra_pair.hpp
+* @details FDPS version 4.0b or later is required.
+*/
 //***************************************************************************************
 #pragma once
 
@@ -51,42 +54,51 @@ namespace IntraPair {
     /**
     * @brief functor for construction the mask list for intermolecular interaction.
     * @tparam <Tid> data type of ID.
-    * @tparam <_GetConnect> functor to get the next node list from particle.
-    *                       MUST have:  <Container> operator () (const Tptcl &ptcl){}.
-    *                                   <Container> is any container class with begin() and end() interface.
-    *                                   such as std::vector<> or MD_EXT::fixed_vector<>.
+    * @tparam <GetConnect> functor to get the next node list from particle.
+    *                      MUST have:  <Container> operator () (const Tptcl &ptcl){}.
+    *                                  <Container> is any container class with begin() and end() iterator interface.
+    *                                  such as std::vector<> or MD_EXT::fixed_vector<>.
     */
-    template <class Tid, class _GetConnect>
+    template <class Tid, class GetConnect>
     class IntraMaskMaker{
     private:
-        std::vector<Tid>                     node_list_buff;
-        std::vector<std::pair<Tid, PS::S32>> mask_order_buff;
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            std::vector< std::vector<Tid> >                     node_list_buff;
+            std::vector< std::vector<std::pair<Tid, PS::S32>> > mask_order_buff;
 
-        //
-        //  NOTICE: PS::TreeForForce<>::getEpjFromId() is not thread safe.
-        //     it is no meaning to modify accepting multi thread.
+            std::vector<Tid>& node_list(){
+                return this->node_list_buff[omp_get_thread_num()];
+            }
+            std::vector<std::pair<Tid, PS::S32>>& mask_order(){
+                return this->mask_order_buff[omp_get_thread_num()];
+            }
+            void _init_buff(){
+                const PS::S32 n_thread = omp_get_max_threads();
+                this->node_list_buff.resize(n_thread);
+                this->mask_order_buff.resize(n_thread);
+                for(PS::S32 i=0; i<n_thread; ++i){
+                    this->node_list_buff[i].clear();
+                    this->mask_order_buff[i].clear();
 
-        //std::vector< std::vector<Tid> >                     node_list_buff;
-        //std::vector< std::vector<std::pair<Tid, PS::S32>> > mask_order_buff;
-        //
-        //std::vector<Tid>& node_list(){
-        //    #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
-        //    const PS::S32 thread_id = omp_get_thread_num();
-        //    #else
-        //    const PS::S32 thread_id = 0;
-        //    #endif
-        //    return this->node_list_buff.at(thread_id);
-        //}
-        //std::vector<std::pair<Tid, PS::S32>>& mask_order(){
-        //    #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
-        //    const PS::S32 thread_id = omp_get_thread_num();
-        //    #else
-        //    const PS::S32 thread_id = 0;
-        //    #endif
-        //    return this->mask_order_buff.at(thread_id);
-        //}
-        std::vector<Tid>&                     node_list() { return this->node_list_buff;  }
-        std::vector<std::pair<Tid, PS::S32>>& mask_order(){ return this->mask_order_buff; }
+                    this->node_list_buff[i].reserve(4);
+                    this->mask_order_buff[i].reserve(16);
+                }
+            }
+        #else
+            std::vector<Tid>                     node_list_buff;
+            std::vector<std::pair<Tid, PS::S32>> mask_order_buff;
+
+            std::vector<Tid>&                     node_list() { return this->node_list_buff;  }
+            std::vector<std::pair<Tid, PS::S32>>& mask_order(){ return this->mask_order_buff; }
+
+            void _init_buff(){
+                this->node_list_buff.clear();
+                this->mask_order_buff.clear();
+
+                this->node_list_buff.reserve(4);
+                this->mask_order_buff.reserve(16);
+            }
+        #endif
 
     public:
         void clear(){
@@ -94,17 +106,7 @@ namespace IntraPair {
             this->mask_order().clear();
         }
         IntraMaskMaker(){
-        //    #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
-        //    const PS::S32 n_threads = omp_get_max_threads();
-        //    #else
-        //    const PS::S32 n_threads = 1;
-        //    #endif
-        //    this->node_list_buff.resize(n_threads);
-        //    this->mask_order_buff.resize(n_threads);
-
-            this->clear();
-            this->node_list().reserve(4);
-            this->mask_order().reserve(16);
+            this->_init_buff();
         }
         ~IntraMaskMaker() = default;
 
@@ -141,7 +143,7 @@ namespace IntraPair {
             const PS::S32 now_order = this->node_list().size() - 1;
 
             //--- search in connection lists gotten from get_func()
-            const auto connect_list = _GetConnect()(ptcl);
+            const auto connect_list = GetConnect()(ptcl);
             for(const Tid id_next : connect_list){
 
                 check_invalid_connect(ptcl.getId(), id_next);
@@ -182,7 +184,8 @@ namespace IntraPair {
                 result.reserve(this->mask_order().size());
                 for(const auto& mask_tgt : this->mask_order()){
                     auto param = mask_param.at(mask_tgt.second);
-                    result.push_back(param.setId(mask_tgt.first));
+                    param.setId(mask_tgt.first);
+                    result.push_back(param);
                 }
 
                 //--- clear internal buffer
@@ -194,12 +197,12 @@ namespace IntraPair {
     /**
     * @brief functor for construction the angle pair list for intramolecular interaction.
     * @tparam <Tid> data type of ID.
-    * @tparam <_GetConnect> functor to get the next node list from particle.
-    *                       MUST have:  <Container> operator () (const Tptcl &ptcl){}.
-    *                                   <Container> is any container class with begin() and end() interface.
-    *                                   such as std::vector<> or MD_EXT::fixed_vector<>.
+    * @tparam <GetConnect> functor to get the next node list from particle.
+    *                      MUST have:  <Container> operator () (const Tptcl &ptcl){}.
+    *                                  <Container> is any container class with begin() and end() iterator interface.
+    *                                  such as std::vector<> or MD_EXT::fixed_vector<>.
     */
-    template <class Tid, class _GetConnect>
+    template <class Tid, class GetConnect>
     class AngleListMaker{
     public:
 
@@ -223,7 +226,7 @@ namespace IntraPair {
             result.clear();
             const Tid  id_root   = ptcl.getId();
             //--- I-J
-            const auto connect_i = _GetConnect()(ptcl);
+            const auto connect_i = GetConnect()(ptcl);
             for(size_t j=0; j<connect_i.size(); ++j){
                 const Tid id_j = connect_i[j];
 
@@ -235,7 +238,7 @@ namespace IntraPair {
 
                 check_nullptr_ptcl(ptr_j, id_root, id_j);
 
-                const auto connect_j = _GetConnect()(*ptr_j);
+                const auto connect_j = GetConnect()(*ptr_j);
                 for(size_t k=0; k<connect_j.size(); ++k){
                     const Tid id_k = connect_j[k];
 
@@ -265,12 +268,12 @@ namespace IntraPair {
     /**
     * @brief functor for construction the torsion pair list for intramolecular interaction.
     * @tparam <Tid> data type of ID.
-    * @tparam <_GetConnect> functor to get the next node list from particle.
-    *                       MUST have:  <Container> operator () (const Tptcl &ptcl){}.
-    *                                   <Container> is any container class with begin() and end() interface.
-    *                                   such as std::vector<> or MD_EXT::fixed_vector<>.
+    * @tparam <GetConnect> functor to get the next node list from particle.
+    *                      MUST have:  <Container> operator () (const Tptcl &ptcl){}.
+    *                                  <Container> is any container class with begin() and end() iterator interface.
+    *                                  such as std::vector<> or MD_EXT::fixed_vector<>.
     */
-    template <class Tid, class _GetConnect>
+    template <class Tid, class GetConnect>
     class TorsionListMaker{
     public:
 
@@ -297,7 +300,7 @@ namespace IntraPair {
             improper_result.clear();
             const Tid  id_root   = ptcl.getId();
             //--- I-J
-            const auto connect_i = _GetConnect()(ptcl);
+            const auto connect_i = GetConnect()(ptcl);
             for(size_t j=0; j<connect_i.size(); ++j){
                 const Tid id_j = connect_i[j];
                 check_invalid_connect(id_root, id_j);
@@ -306,7 +309,7 @@ namespace IntraPair {
                 auto* ptr_j = tree.getEpjFromId(id_j);
                 check_nullptr_ptcl(ptr_j, id_root, id_j);
 
-                const auto connect_j = _GetConnect()(*ptr_j);
+                const auto connect_j = GetConnect()(*ptr_j);
                 for(size_t k=0; k<connect_j.size(); ++k){
                     const Tid id_k = connect_j[k];
                     check_invalid_connect(id_j, id_k);
@@ -316,7 +319,7 @@ namespace IntraPair {
                     const auto* ptr_k = tree.getEpjFromId(id_k);
                     check_nullptr_ptcl(ptr_k, id_j, id_k);
 
-                    const auto connect_k = _GetConnect()(*ptr_k);
+                    const auto connect_k = GetConnect()(*ptr_k);
                     for(size_t l=0; l<connect_k.size(); ++l){
                         const Tid id_l = connect_k[l];
                         check_invalid_connect(id_k, id_l);

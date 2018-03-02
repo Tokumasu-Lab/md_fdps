@@ -169,6 +169,10 @@ namespace MD_EXT {
         void resize(size_type sz){
             this->resize(sz, T{});
         }
+        void reserve(size_type sz){
+            this->_M_capacity_check(sz);
+        }
+        void shrink_to_fit(){}  // do nothing
 
         //--- input for initializer_list
         fixed_vector& operator = (std::initializer_list<T> list){

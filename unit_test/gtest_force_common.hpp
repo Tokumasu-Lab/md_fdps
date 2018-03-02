@@ -4,80 +4,8 @@
 
 #include <cassert>
 
+#include "gtest_common.hpp"
 
-::testing::AssertionResult float_relative_eq(const double &lhs,
-                                             const double &rhs,
-                                             const double &abs_err,
-                                             const double &relative_err){
-
-    assert(abs_err      >= 0.0);
-    assert(relative_err >= 0.0);
-
-    std::ostringstream oss;
-    oss << "\n"
-        << "  lhs = " << lhs << "\n"
-        << "  rhs = " << rhs << "\n";
-
-    const double diff = lhs - rhs;
-    if(std::abs(diff) > abs_err){
-        oss << "    diff = " << diff << " > " << "absolute error = " << abs_err << "\n";
-    } else {
-        return ::testing::AssertionSuccess();
-    }
-
-    double r_diff = 0.0;
-    if(lhs == 0.0){
-        r_diff = diff/rhs;
-    } else {
-        r_diff = diff/lhs;
-    }
-
-    if(std::abs(r_diff) > relative_err ){
-        oss << "    relative diff =" << r_diff << " > " << "relative error = " << relative_err << "\n";
-    } else {
-        return ::testing::AssertionSuccess();
-    }
-
-    return ::testing::AssertionFailure() << oss.str();
-}
-
-::testing::AssertionResult float_relative_eq(const double &lhs,
-                                             const double &rhs,
-                                             const double &relative_err){
-    return float_relative_eq(lhs, rhs, relative_err, relative_err);
-}
-
-template <class Tlog>
-void write_log_file(const Tlog &data_list, const std::string &file_name){
-    if(PS::Comm::getRank() != 0) return;
-
-    std::ofstream file{file_name};
-    for(const auto& data : data_list){
-        file << data;
-    }
-    file.close();
-}
-
-template <class Tlog>
-void load_log_file(Tlog &data_list, const std::string &file_name){
-    data_list.clear();
-
-    if(PS::Comm::getRank() == 0){
-        std::ifstream file_ref{file_name};
-        if(file_ref.fail()){
-            throw std::ios_base::failure("reference data: " + file_name + " was not found.");
-        }
-
-        std::string line;
-        std::vector<std::string> str_list;
-        while( getline(file_ref, line) ){
-            STR_TOOL::removeCR(line);
-            str_list = STR_TOOL::split(line, " ");
-            read_ref_data(str_list, data_list);
-        }
-    }
-    COMM_TOOL::broadcast(data_list, 0);
-}
 
 void test_init(const PS::S64 n_step){
     if(PS::Comm::getRank() != 0) return;

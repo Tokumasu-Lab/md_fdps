@@ -86,8 +86,8 @@ namespace COMM_TOOL {
     */
     template <class T>
     void gather(const T              &value,
-                const PS::S32         root,
-                      std::vector<T> &recv_vec){
+                      std::vector<T> &recv_vec,
+                const PS::S32         root     ){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0) std::cout << " *** gather_<T, result>" << std::endl;
         #endif
@@ -99,7 +99,7 @@ namespace COMM_TOOL {
             MPI::COMM_WORLD.Gather(&value,       1, PS::GetDataType<T>(),
                                    &recv_vec[0], 1, PS::GetDataType<T>(), root);
         #else
-            recv_vec.push_back(value);
+            recv_vec.at(0) = value;
         #endif
     }
 
@@ -111,8 +111,8 @@ namespace COMM_TOOL {
     */
     template <class T>
     void gather(const std::vector<T>              &send_vec,
-                const PS::S32                      root,
-                      std::vector<std::vector<T>> &recv_vec_vec){
+                      std::vector<std::vector<T>> &recv_vec_vec,
+                const PS::S32                      root         ){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0) std::cout << " *** gather_<std::vector<T>, result>" << std::endl;
         #endif
@@ -121,7 +121,7 @@ namespace COMM_TOOL {
         std::vector<PS::S32> n_recv_disp;
         std::vector<T>       recv_data;
         PS::S32              len = send_vec.size();
-        gather(len, root, n_recv);
+        gather(len, n_recv, root);
 
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
         n_recv_disp.resize(n_proc+1);
@@ -167,8 +167,8 @@ namespace COMM_TOOL {
     * @param[out] recv_vec_str recieve result.
     */
     void gather(const std::string              &send_str,
-                const PS::S32                   root,
-                      std::vector<std::string> &recv_vec_str){
+                      std::vector<std::string> &recv_vec_str,
+                const PS::S32                   root         ){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::string, result>" << std::endl;
         #endif
@@ -179,7 +179,7 @@ namespace COMM_TOOL {
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         serialize_string(send_str, send_vec_char);
-        gather(send_vec_char, root, recv_vec_vec_char);
+        gather(send_vec_char, recv_vec_vec_char, root);
 
         if(PS::Comm::getRank() == root){
             recv_vec_str.resize(n_proc);
@@ -199,8 +199,8 @@ namespace COMM_TOOL {
     * @param[out] recv_vec_vec_str recieve result.
     */
     void gather(const std::vector<std::string>              &send_vec_str,
-                const PS::S32                                root,
-                      std::vector<std::vector<std::string>> &recv_vec_vec_str){
+                      std::vector<std::vector<std::string>> &recv_vec_vec_str,
+                const PS::S32                                root             ){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::vector<std::string>, result>" << std::endl;
         #endif
@@ -211,7 +211,7 @@ namespace COMM_TOOL {
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         serialize_vector_string(send_vec_str, send_vec_char);
-        gather(send_vec_char, root, recv_vec_vec_char);
+        gather(send_vec_char, recv_vec_vec_char, root);
 
         if(PS::Comm::getRank() == root){
             recv_vec_vec_str.resize(n_proc);
@@ -235,8 +235,8 @@ namespace COMM_TOOL {
     */
     template <class T>
     void gather(const std::vector<std::vector<T>>              &send_vec_vec,
-                const PS::S32                                   root,
-                      std::vector<std::vector<std::vector<T>>> &recv_vec_vec_vec){
+                      std::vector<std::vector<std::vector<T>>> &recv_vec_vec_vec,
+                const PS::S32                                   root             ){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::vector<std::vector<T>>, result>" << std::endl;
         #endif
@@ -249,8 +249,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<T>>      recv_data;
         std::vector<std::vector<size_t>> recv_index;
-        gather(vec_data,  root, recv_data);
-        gather(vec_index, root, recv_index);
+        gather(vec_data , recv_data , root);
+        gather(vec_index, recv_index, root);
 
         if(PS::Comm::getRank() == root){
             recv_vec_vec_vec.resize(PS::Comm::getNumberOfProc());
@@ -273,8 +273,8 @@ namespace COMM_TOOL {
     */
     template <class Ta, class Tb>
     void gather(const std::vector<std::pair<Ta, Tb>>              &send_vec_pair,
-                const PS::S32                                      root,
-                      std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vec_pair){
+                      std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vec_pair,
+                const PS::S32                                      root              ){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::vector<std::pair<Ta, Tb>>, result>" << std::endl;
         #endif
@@ -286,8 +286,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<Ta>> recv_vec_1st;
         std::vector<std::vector<Tb>> recv_vec_2nd;
-        gather(vec_1st, root, recv_vec_1st);
-        gather(vec_2nd, root, recv_vec_2nd);
+        gather(vec_1st, recv_vec_1st, root);
+        gather(vec_2nd, recv_vec_2nd, root);
 
         if(PS::Comm::getRank() == root){
             recv_vec_vec_pair.resize(PS::Comm::getNumberOfProc());
@@ -312,7 +312,7 @@ namespace COMM_TOOL {
     template <class T>
     std::vector<T> gather(const T &send_data, const PS::S32 root){
         std::vector<T> recv_vec;
-        gather(send_data, root, recv_vec);
+        gather(send_data, recv_vec, root);
         return recv_vec;
     }
 

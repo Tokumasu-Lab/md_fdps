@@ -108,24 +108,24 @@ PS::F64 rel_diff(const PS::F64 lhs, const PS::F64 rhs){
 
 //--- unit test definition, CANNOT use "_" in test/test_case name.
 TEST_F(BolzmannDist, result){
-    ASSERT_EQ(x_list.size(),    x_list_ref.size());
-    ASSERT_EQ(blz_count.size(), blz_count_ref.size());
+    EXPECT_EQ(x_list.size(),    x_list_ref.size());
+    EXPECT_EQ(blz_count.size(), blz_count_ref.size());
 
     for(size_t i=0; i<x_list.size(); ++i){
-        ASSERT_TRUE(rel_diff(x_list[i], x_list_ref[i]) < eps) << "result: " << x_list[i]
+        EXPECT_TRUE(rel_diff(x_list[i], x_list_ref[i]) < eps) << "result: " << x_list[i]
                                                               << " | ref: " << x_list_ref[i];
-        ASSERT_EQ(blz_count[i], blz_count_ref[i]);
+        EXPECT_EQ(blz_count[i], blz_count_ref[i]);
     }
 }
 TEST_F(BolzmannDist, internalTable){
-    ASSERT_EQ(x_list.size(),          x_list_ref.size());
-    ASSERT_EQ(cumulative_dist.size(), cumulative_dist_ref.size());
+    EXPECT_EQ(x_list.size(),          x_list_ref.size());
+    EXPECT_EQ(cumulative_dist.size(), cumulative_dist_ref.size());
 
     for(size_t i=0; i<x_list.size(); ++i){
-        ASSERT_TRUE(rel_diff(x_list[i], x_list_ref[i]) < eps)
+        EXPECT_TRUE(rel_diff(x_list[i], x_list_ref[i]) < eps)
             << "result: " << x_list[i]
             << " | ref: " << x_list_ref[i];
-        ASSERT_TRUE(rel_diff(cumulative_dist[i], cumulative_dist_ref[i]) < eps)
+        EXPECT_TRUE(rel_diff(cumulative_dist[i], cumulative_dist_ref[i]) < eps)
             << "result: " << cumulative_dist[i]
             << " | ref: " << cumulative_dist_ref[i];
     }

@@ -1,8 +1,8 @@
 /**************************************************************************************************/
 /**
-* @file  boltzmann_dist.hpp
-* @brief normarized boltzmann distribution generator.
-* @detail ref: http://www.natural-science.or.jp/article/20170403143134.php
+* @file    boltzmann_dist.hpp
+* @brief   normarized boltzmann distribution generator.
+* @details ref: http://www.natural-science.or.jp/article/20170403143134.php
 */
 /**************************************************************************************************/
 #pragma once
@@ -26,7 +26,7 @@ namespace MD_EXT {
         PS::F64              dv;
 
         PS::F64 f_bar(const PS::F64 &v){
-            constexpr PS::F64 pi_sqrtinv = 1.0/std::sqrt(3.141592653589793);
+            const PS::F64 pi_sqrtinv = 1.0/std::sqrt(3.141592653589793);
             return 4.0*pi_sqrtinv*v*v*std::exp(-v*v);
         }
 

@@ -1,6 +1,6 @@
 /**************************************************************************************************/
 /**
-* @file  md_ext_normalize.hpp
+* @file  normalize.hpp
 * @brief normalize interface for position, potential, and force.
 */
 /**************************************************************************************************/
@@ -180,23 +180,6 @@ namespace Normalize {
         if(pos_new.y >=  0.5*boxdh_.y) pos_new.y -= boxdh_.y;
         if(pos_new.z >=  0.5*boxdh_.z) pos_new.z -= boxdh_.z;
         return pos_new;
-    }
-
-    //! @brief check the position is out of domain or not
-    //! @param[in] pos_norm normalized position.
-    //! @return bool True: out of domain. False: exists in domain.
-    template <class Tf>
-    bool checkPosInSpace(const PS::Vector3<Tf> &pos_norm){
-        if(pos_norm.x <  0.0 ||
-           pos_norm.y <  0.0 ||
-           pos_norm.z <  0.0 ||
-           pos_norm.x >= 1.0 ||
-           pos_norm.y >= 1.0 ||
-           pos_norm.z >= 1.0   ){
-            return false;
-        } else {
-            return true;
-        }
     }
 
     //! @brief convert real drift dispracement to normalized drift.

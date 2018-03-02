@@ -49,8 +49,10 @@ int main(int argc, char* argv[]){
 
     //--- display total threads for FDPS
     if(PS::Comm::getRank() == 0){
-        std::cout << "Number of processes          : " << PS::Comm::getNumberOfProc()   << "\n"
-                  << "Number of threads per process: " << PS::Comm::getNumberOfThread() << std::endl;
+        std::ostringstream oss;
+        oss << "Number of processes          : " << PS::Comm::getNumberOfProc()   << "\n"
+            << "Number of threads per process: " << PS::Comm::getNumberOfThread() << "\n";
+        std::cout << oss.str() << std::flush;
     }
 
 
@@ -105,9 +107,12 @@ int main(int argc, char* argv[]){
         //--- load resume file
         FILE_IO::ResumeFileManager init_loader{ MD_DEFS::resume_data_dir };
         init_loader.load(atom, System::profile, ext_sys_controller);
-        std::cout << "  Proc = "    << PS::Comm::getRank()
-                  << ", n_local = " << atom.getNumberOfParticleLocal()
-                  << " / total = "  << atom.getNumberOfParticleGlobal() << std::endl;
+
+        std::ostringstream oss;
+        oss << "  Rank = "    << PS::Comm::getRank()
+            << ": n_local = " << atom.getNumberOfParticleLocal()
+            << " / total = "  << atom.getNumberOfParticleGlobal() << "\n";
+        std::cout << oss.str() << std::flush;
     } else {
         std::ostringstream oss;
         oss << " istep = " << System::get_istep() << ", must be >= 0." << "\n";
@@ -132,9 +137,9 @@ int main(int argc, char* argv[]){
     Observer::MovingAve<Observer::Energy>   eng_ave;
     Observer::MovingAve<Observer::Property> prop_ave;
 
-    eng.file_init("energy_raw.dat");
+    eng.file_init( "energy_raw.dat"  );
     prop.file_init("property_raw.dat");
-    eng_ave.file_init( "eng_ave.dat",  System::get_eng_start(),  System::get_eng_interval()  );
+    eng_ave.file_init( "eng_ave.dat" , System::get_eng_start(),  System::get_eng_interval()  );
     prop_ave.file_init("prop_ave.dat", System::get_prop_start(), System::get_prop_interval() );
 
     FILE_IO::VMDFileManager    vmd_file_mngr{    MD_DEFS::VMD_data_dir   , System::get_VMD_start()   , System::get_VMD_interval()    };
@@ -150,6 +155,11 @@ int main(int argc, char* argv[]){
     if(PS::Comm::getRank() == 0) std::cout << "\n --- main loop start! ---\n" << std::endl;
     while( System::isLoopContinue() ){
 
+        //--- output record
+        vmd_file_mngr.record(   atom, System::profile );
+        pos_file_mngr.record(   atom, System::profile );
+        resume_file_mngr.record(atom, System::profile, ext_sys_controller);
+
         //--- get system property
         eng.getEnergy(atom);
         prop.getProperty(eng);
@@ -161,11 +171,6 @@ int main(int argc, char* argv[]){
                                  System::get_dt(),
                                  atom,
                                  eng);
-
-        //--- output record
-        vmd_file_mngr.record(   atom, System::profile );
-        pos_file_mngr.record(   atom, System::profile );
-        resume_file_mngr.record(atom, System::profile, ext_sys_controller);
 
         //--- energy log
         //------ raw data
@@ -184,15 +189,26 @@ int main(int argc, char* argv[]){
         ext_sys_controller.drift(System::get_dt(), atom);
         atom.adjustPositionIntoRootDomain(dinfo);
 
-        //--- exchange particle
-    //    if( System::isDinfoUpdate() ){
+        #ifdef REUSE_INTRA_LIST
+            //--- update domain info & exchange particle
+            if( System::isDinfoUpdate() ){
+                dinfo.decomposeDomainAll(atom);
+                atom.exchangeParticle(dinfo);
+
+                force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
+                force.update_force(atom, dinfo);
+            } else {
+                force.update_force(atom, dinfo);
+            }
+        #else
+            //--- update domain info & exchange particle
             dinfo.decomposeDomainAll(atom);  // perform at every step is requred by PS::ParticleMesh
             atom.exchangeParticle(dinfo);    // perform at every step is requred by PS::ParticleMesh
-            force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
-    //    }
 
-        //--- calculate intermolecular force in FDPS
-        force.update_force(atom, dinfo);
+            //--- calculate intermolecular force in FDPS
+            force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
+            force.update_force(atom, dinfo);
+        #endif
 
         //--- kick
         //kick(0.5*System::get_dt(), atom);

@@ -9,7 +9,6 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
-#include <sys/stat.h>
 
 #include <particle_simulator.hpp>
 #include <molecular_dynamics_ext.hpp>
@@ -18,27 +17,6 @@
 namespace FILE_IO {
 
     namespace TOOL {
-
-        //--- directory manager
-        void makeOutputDirectory(const std::string &dir_name){
-            struct stat st;
-            if(stat(dir_name.c_str(), &st) != 0) {
-                PS::S32 ret_loc = 0;
-                PS::S32 ret     = 0;
-                if(PS::Comm::getRank() == 0){
-                    ret_loc = mkdir(dir_name.c_str(), 0777);
-                }
-                PS::Comm::broadcast(&ret_loc, ret);
-                if(ret == 0) {
-                    if(PS::Comm::getRank() == 0){
-                        std::cout << "Directory " << dir_name << " is successfully made." << std::endl;
-                    }
-                } else {
-                    std::cerr << "Directory " << dir_name << " fails to be made." << std::endl;
-                    PS::Abort();
-                }
-            }
-        }
 
         //--- line reader
         std::vector<std::string> line_to_str_list(FILE *fp, const std::string &delim){
@@ -120,7 +98,7 @@ namespace FILE_IO {
                 this->name_pre  = name_pre;
                 this->name_post = name_post;
 
-                TOOL::makeOutputDirectory(this->data_dir);
+                FS_TOOL::make_directory(this->data_dir);
             }
 
             PS::S64 get_start()    const { return this->start;    }

@@ -9,8 +9,10 @@ GTEST_SRCS += $(REL)/gtest_vec_ext.cpp
 #--- COMM_TOOL::
 GTEST_SRCS += $(REL)/gtest_comm_tool_SerDes.cpp
 GTEST_SRCS += $(REL)/gtest_comm_tool_broadcast.cpp
-GTEST_SRCS += $(REL)/gtest_comm_tool_allGather.cpp
 GTEST_SRCS += $(REL)/gtest_comm_tool_gather.cpp
+GTEST_SRCS += $(REL)/gtest_comm_tool_scatter.cpp
+GTEST_SRCS += $(REL)/gtest_comm_tool_allGather.cpp
+GTEST_SRCS += $(REL)/gtest_comm_tool_allToAll.cpp
 
 #--- MD_EXT::boltzmann_dist
 GTEST_SRCS += $(REL)/gtest_blz_dist.cpp

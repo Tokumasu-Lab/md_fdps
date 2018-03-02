@@ -294,7 +294,7 @@ namespace Initialize {
         std::cout << " Initialize: total atoms = " << n_total << std::endl;
 
         //--- initialize random number & distribution generator
-        constexpr int                           seed = std::pow(2, 19) + 1;
+        const int                               seed = std::pow(2, 19) + 1;
         std::mt19937_64                         mt(seed);
         std::uniform_real_distribution<PS::F64> dist(0.0, 1.0);   // [0.0, 1.0)
         MD_EXT::boltzmann_dist                  blz_dist;

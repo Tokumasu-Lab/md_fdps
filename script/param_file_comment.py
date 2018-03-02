@@ -23,7 +23,7 @@ comment["@<PARAM>ATOM"] = """===================================================
   definition of parameters on each atoms.
     atom_name, res_name, mass, vdw_d, vdw_r
       atom_name [-]              string, must be same to "atom_name" in ***.mol2 file.
-      res_name  [-]              string, up to 3 characters for pdb files.
+      res_name  [-]              string, up to 3 characters. used for ***.pdb files.
       mass      [atomic weight]
       vdw_d     [kcal/mol]       function: V(r) = vdw_d*((vdw_r/r)^12 - 2*(vdw_r/r)^6)
       vdw_r     [angstrom]

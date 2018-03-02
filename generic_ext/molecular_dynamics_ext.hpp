@@ -11,6 +11,7 @@
 
 #include "comm_tool.hpp"
 #include "str_tool.hpp"
+#include "fstream_tool.hpp"
 #include "hash_tuple.hpp"
 #include "chrono_str.hpp"
 

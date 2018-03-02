@@ -1,6 +1,6 @@
 //=======================================================================================
-//  This is unit test of additional wrapper of PS::Comm::broadcast().
-//     provides interface for some STL container.
+//  This is unit test of internal tools for COMM_TOOL::.
+//     provides serialize/deserialize interface for some STL container.
 //     module location: ./generic_ext/comm_tool_SerDes.hpp
 //=======================================================================================
 

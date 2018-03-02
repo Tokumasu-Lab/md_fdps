@@ -279,22 +279,23 @@ $ ldd a.out
 <a id="FDPSのparticle_mesh拡張機能のコンパイル"></a>
 <a href="#FDPSのparticle_mesh拡張機能のコンパイル"></a>
 ## おまけ1：FDPSのparticle_mesh拡張機能のコンパイル
-ダウンロードしたFDPSのファイルを適当なフォルダ(ここでは `$HOME/local/FDPS-3.0` )に展開しておく．
+ダウンロードしたFDPSのファイルを適当なフォルダ(ここでは `$HOME/local/FDPS-4.0` )に展開しておく．
 
 Makefileの編集(configureは付属していない)  
 上記のように環境を構築しているのなら,
 ```bash
-$ cd $HOME/local/FDPS-3.0/src/particle_mesh
+$ cd $HOME/local/FDPS-4.0/src/particle_mesh
 $ emacs Makefile
 ```
 このMakefileのコンパイルオプションとFFTwライブラリの参照先を編集する．
 
-まずデバッグ用の派生版を作る
+まずデバッグ用の派生版を作る．  
+使用するFFTwのライブラリに対し環境変数 `FFTW_ROOT` が定義されているなら，修正内容は以下のようになる．
 
 ```bash
 CC = mpicxx
 CFLAGS = -O0 -DMPICH_IGNORE_CXX_SEEK -g3 -Wall
-INCLUDE_FFTW = -I$HOME/local/fftw-3.3.6/include
+INCLUDE_FFTW = -I${FFTW_ROOT}/include
 ```
 
 デバッグ版のコンパイル
@@ -421,7 +422,7 @@ $ unzip ./googletest-master.zip
 展開した google test に移動し，コンパイル用のディレクトリを作成する
 
 ```bash
-$ cd ./gogletest-master
+$ cd ./googletest-master
 
 $ mkdir build
 ```
@@ -436,7 +437,7 @@ $ export CC=gcc
 $ export CXX=g++
 
 $ cd build
-$ cmake .
+$ cmake ..
 $ make
 ```
 

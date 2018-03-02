@@ -1,7 +1,7 @@
 //=======================================================================================
 //  This is unit test of additional wrapper of PS::Comm::.
 //     provides the interface for some STL container.
-//     module location: ./generic_ext/comm_tool.hpp
+//     module location: ./generic_ext/comm_tool_broadcast.hpp
 //=======================================================================================
 
 #include <gtest/gtest.h>

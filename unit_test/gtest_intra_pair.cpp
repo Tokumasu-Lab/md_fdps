@@ -146,6 +146,7 @@ public:
     static PS::F32 R_cut;
     static PS::F32 getRSearch() { return Atom::R_cut; }
 
+  private:
     //--- static data for intra pair table
     static std::unordered_map< MD_DEFS::ID_type,
                                std::tuple<MD_DEFS::MaskList,
@@ -153,6 +154,7 @@ public:
                                           MD_DEFS::TorsionList,
                                           MD_DEFS::TorsionList> > intra_pair_table;
 
+  public:
     MD_DEFS::MaskList&    mask_list()    { return std::get<0>(this->intra_pair_table[this->getId()]); }
     MD_DEFS::AngleList&   angle_list()   { return std::get<1>(this->intra_pair_table[this->getId()]); }
     MD_DEFS::TorsionList& dihedral_list(){ return std::get<2>(this->intra_pair_table[this->getId()]); }
@@ -163,6 +165,14 @@ public:
         this->angle_list().clear();
         this->dihedral_list().clear();
         this->improper_list().clear();
+    }
+
+    static void clear_intra_pair_table(){
+        intra_pair_table.clear();
+    }
+    static void reserve_intra_pair_table(const PS::S64 n, const PS::F32 factor = 0.7){
+        intra_pair_table.max_load_factor(factor);
+        intra_pair_table.reserve(n);
     }
 };
 PS::F32 Atom::R_cut = 0.3;
@@ -211,8 +221,8 @@ struct DataBasic {
         atom.initialize();
         atom.setNumberOfParticleLocal(0);
 
-        Atom::intra_pair_table.clear();
-        Atom::intra_pair_table.max_load_factor(0.7);
+        Atom::clear_intra_pair_table();
+        Atom::reserve_intra_pair_table(n);
 
         tree.initialize(n, 0.5, 8, 64);
     }
@@ -223,13 +233,32 @@ struct DataBasic {
                                  atom,
                                  dinfo );
 
-        PS::S32 n_local = atom.getNumberOfParticleLocal();
-        for(PS::S32 i=0; i<n_local; ++i){
-            atom[i].clear_intra_list();
-            intra_mask_maker(  atom[i], tree, mask_param, atom[i].mask_list());
-            angle_list_maker(  atom[i], tree, atom[i].angle_list());
-            torsion_list_maker(atom[i], tree, atom[i].dihedral_list(), atom[i].improper_list());
-        }
+        const PS::S32 n_local = atom.getNumberOfParticleLocal();
+        if(n_local == 0) return;
+
+        Atom::clear_intra_pair_table();
+
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            //--- clear & allocate
+            for(PS::S32 i=0; i<n_local; ++i){
+                atom[i].clear_intra_list();
+            }
+
+            //--- search pair
+            #pragma omp parallel for
+            for(PS::S32 i=0; i<n_local; ++i){
+                intra_mask_maker(  atom[i], tree, mask_param, atom[i].mask_list());
+                angle_list_maker(  atom[i], tree, atom[i].angle_list());
+                torsion_list_maker(atom[i], tree, atom[i].dihedral_list(), atom[i].improper_list());
+            }
+        #else
+            for(PS::S32 i=0; i<n_local; ++i){
+                atom[i].clear_intra_list();
+                intra_mask_maker(  atom[i], tree, mask_param, atom[i].mask_list());
+                angle_list_maker(  atom[i], tree, atom[i].angle_list());
+                torsion_list_maker(atom[i], tree, atom[i].dihedral_list(), atom[i].improper_list());
+            }
+        #endif
     }
 
     void check_result(){
