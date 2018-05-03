@@ -176,14 +176,10 @@ namespace MD_EXT {
 
         //--- input for initializer_list
         fixed_vector& operator = (std::initializer_list<T> list){
-            auto n = std::distance(list.begin(), list.end());
-            if(n >= (decltype(n))Size) throw std::length_error("fixed_vector::_capacity_check");
-
             this->clear();
             for(auto itr = list.begin(); itr != list.end(); ++itr){
                 this->push_back(*itr);
             }
-
             return *this;
         }
         fixed_vector(std::initializer_list<T> list){
@@ -193,7 +189,7 @@ namespace MD_EXT {
         //--- interface for different size fixed_vector
         template <size_t Size_rhs>
         fixed_vector& operator = (const fixed_vector<T, Size_rhs> &rhs){
-            if(this->max_size() < rhs.size()) throw std::length_error("fixed_vector::_capacity_check");
+            this->_M_capacity_check( rhs.size() );
 
             this->_n = rhs.size();
             for(size_t i=0; i<rhs.size(); ++i){
@@ -207,12 +203,23 @@ namespace MD_EXT {
         }
         template <size_t Size_rhs>
         void swap(fixed_vector<T,Size_rhs> &other){
-            if(this->_n     > other.max_size()) throw std::length_error("fixed_vector::_capacity_check");
-            if(other.size() > this->max_size()) throw std::length_error("fixed_vector::_capacity_check");
-
             fixed_vector tmp = *this;
             *this = other;
             other = tmp;
+        }
+
+        //--- interface for std::vector<T>
+        fixed_vector& operator = (const std::vector<T> &rhs){
+            this->_M_capacity_check(rhs.size());
+
+            this->_n = rhs.size();
+            for(size_t i=0; i<rhs.size(); ++i){
+                this->_array[i] = rhs[i];
+            }
+            return *this;
+        }
+        fixed_vector(const std::vector<T> &rhs){
+            *this = rhs;
         }
     };
 

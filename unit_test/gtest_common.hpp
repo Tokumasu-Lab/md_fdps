@@ -49,13 +49,16 @@
 template <class Tlog>
 void write_log_file(const std::string &file_name,
                     const Tlog        &data_list){
-    if(PS::Comm::getRank() != 0) return;
 
-    std::ofstream file{file_name};
-    for(const auto& data : data_list){
-        file << data;
+    if(PS::Comm::getRank() != 0){
+        std::ofstream file{file_name};
+        if(!file.is_open()) PS::Abort();
+
+        for(const auto& data : data_list){
+            file << data;
+        }
+        file.close();
     }
-    file.close();
 }
 
 template <class Tlog>
@@ -63,6 +66,11 @@ void load_log_file(const std::string &file_name,
                          Tlog        &data_list){
     data_list.clear();
 
-    FS_TOOL::file_load(file_name, data_list, 0);
+    try{
+        FS_TOOL::file_load(file_name, data_list, 0);
+    }
+    catch(...){
+        PS::Abort();
+    }
     COMM_TOOL::broadcast(data_list, 0);
 }

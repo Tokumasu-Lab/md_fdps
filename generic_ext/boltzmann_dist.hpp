@@ -111,11 +111,11 @@ namespace MD_EXT {
         * @param[in] r must be in range [0.0, 1.0).
         * @return result in range [range_min, range_max].
         */
-        PS::F64 gen(const PS::F64 r){
+        PS::F64 gen(const PS::F64 r) const {
             //--- input range = [0.0, 1.0)
             assert(r >= 0.0 && r < 1.0);
 
-            PS::F64 result;
+            PS::F64 result = 1.0;
             for(size_t i=0; i<this->table.size(); ++i){
                 if(this->table[i] <= r && r < this->table[i+1]){
                     PS::F64 x = PS::F64(i);
@@ -131,7 +131,7 @@ namespace MD_EXT {
         * @param[in] r must be in range [0.0, 1.0).
         * @return result in range [range_min, range_max].
         */
-        PS::F64 operator () (const PS::F64 r){ return this->gen(r); }
+        PS::F64 operator () (const PS::F64 r) const { return this->gen(r); }
 
         /**
         * @brief output internal table. cumulative distribution function of gaussian.

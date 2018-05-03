@@ -20,7 +20,8 @@ TEST(FixedVector, init){
     EXPECT_EQ(vec2.max_size(), 8);
     EXPECT_EQ(vec2.size()    , 4);
 
-    vec1 = {1,2,3,4,5};
+    auto init_list = {1,2,3,4,5};
+    EXPECT_NO_THROW(vec1 = init_list);
     EXPECT_FALSE(vec1.empty());
     EXPECT_EQ(vec1.max_size(), 8);
     EXPECT_EQ(vec1.size()    , 5);
@@ -37,14 +38,18 @@ TEST(FixedVector, init){
         EXPECT_EQ(vec3[i], vec1[i]);
     }
 
-    auto init_list = {0,1,2,3,4,5,6,7,8,9,10};
-    EXPECT_THROW(vec1 = init_list, std::length_error);
+    auto init_list_2 = {0,1,2,3,4,5,6,7,8,9,10};
+    EXPECT_THROW(vec1 = init_list_2, std::length_error);
 
     vec1 = {1,2,3,4};
     MD_EXT::fixed_vector<int, 6> vec_s1;
     MD_EXT::fixed_vector<int, 2> vec_s2;
     EXPECT_NO_THROW(vec_s1 = vec1);
     EXPECT_THROW(   vec_s2 = vec1, std::length_error);
+
+    const std::vector<int> std_vec = {4,3,2,1};
+    EXPECT_NO_THROW(vec_s1 = std_vec);
+    EXPECT_THROW(   vec_s2 = std_vec, std::length_error);
 }
 
 TEST(FixedVector, access){
@@ -92,7 +97,7 @@ TEST(FixedVector, edit){
     }
 
     vec.insert(vec.begin()+2, -1);
-    EXPECT_EQ(vec.size(), 5);
+    EXPECT_EQ(vec.size(),  5);
     EXPECT_EQ(vec.at(0) ,  0);
     EXPECT_EQ(vec.at(1) ,  1);
     EXPECT_EQ(vec.at(2) , -1);
@@ -116,6 +121,11 @@ TEST(FixedVector, edit){
     vec_s.clear();
     EXPECT_TRUE(vec_s.empty());
     EXPECT_NO_THROW(vec_s.pop_back());
+
+    for(size_t i=vec.size(); i<vec.max_size(); ++i){
+        EXPECT_NO_THROW(vec.push_back(10*i));
+    }
+    EXPECT_THROW(vec.push_back(-1), std::length_error);
 }
 
 TEST(FixedVector, resize){

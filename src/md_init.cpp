@@ -15,6 +15,7 @@
 #include "file_Out_VMD.hpp"
 #include "atom_class.hpp"
 #include "initialize.hpp"
+#include "observer.hpp"
 
 
 int main(int argc, char *argv[]) {
@@ -55,8 +56,7 @@ int main(int argc, char *argv[]) {
                                            MODEL::coef_table                          );
         }
         System::print_profile();
-        ext_sys_controller.print();
-        ext_sys_sequence.print();
+        System::print_initializer_setting();
 
         PS::F64 init_temperature = ext_sys_sequence.getSetting(0).temperature;
         Initialize::InitParticle(atom,
@@ -89,11 +89,8 @@ int main(int argc, char *argv[]) {
     atom.adjustPositionIntoRootDomain(dinfo);
     atom.exchangeParticle(dinfo);
 
-    std::ostringstream oss;
-    oss << "  Rank = "    << PS::Comm::getRank()
-        << ": n_local = " << atom.getNumberOfParticleLocal()
-        << " / total = "  << atom.getNumberOfParticleGlobal() << "\n";
-    std::cout << oss.str() << std::flush;
+    //--- show statistics value
+    Observer::show_psys_property(atom);
 
     //--- output resume file
     System::profile.istep = 0;

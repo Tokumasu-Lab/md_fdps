@@ -8,6 +8,7 @@
 
 #include "vec_ext.hpp"
 #include "fixed_vector.hpp"
+#include "logspace_array.hpp"
 
 #include "comm_tool.hpp"
 #include "str_tool.hpp"

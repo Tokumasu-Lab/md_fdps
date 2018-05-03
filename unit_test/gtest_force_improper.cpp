@@ -35,6 +35,9 @@ namespace TEST_DEFS {
 
     const PS::S32 data_field_len = 6;
 
+    const PS::F32 eps_abs = 1.e-5;
+    const PS::F32 eps_rel = 1.e-6;
+
     const std::string harmonic_log_file{"test_bin/force_improper_harmonic_log.dat"};
     const std::string harmonic_ref_file{"unit_test/ref/force_improper_harmonic_ref.dat"};
 
@@ -109,10 +112,10 @@ void check_result(const std::vector<ForceData> &result,
     for(PS::S32 i=0; i<n; ++i){
         EXPECT_EQ(result[i].count, ref[i].count) << " i= " << i;
         EXPECT_FLOAT_EQ(result[i].degree   , ref[i].degree   ) << " i= " << i;
-        EXPECT_FLOAT_EQ(result[i].potential, ref[i].potential) << " i= " << i;
-        EXPECT_FLOAT_EQ(result[i].force.x  , ref[i].force.x  ) << " i= " << i;
-        EXPECT_FLOAT_EQ(result[i].force.y  , ref[i].force.y  ) << " i= " << i;
-        EXPECT_FLOAT_EQ(result[i].force.z  , ref[i].force.z  ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(result[i].potential, ref[i].potential, TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(result[i].force.x  , ref[i].force.x  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(result[i].force.y  , ref[i].force.y  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        EXPECT_TRUE( float_relative_eq(result[i].force.z  , ref[i].force.z  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
     }
 }
 

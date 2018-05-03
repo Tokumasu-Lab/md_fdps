@@ -11,6 +11,10 @@
 #include <random>
 
 
+namespace TEST_DEFS {
+    const PS::S64 mt_seed = 7654321;
+    const PS::S64 n_data  = 10000;
+}
 
 //==========================================
 // MPI broadcast
@@ -21,7 +25,7 @@ struct DataBasic {
     std::vector<std::string>      vec_str;
     std::vector<std::pair<int, float>>  vec_pair_i_f;
     std::unordered_map<int, float>      map_i_f;
-    std::unordered_multimap<int, float> m_map_i_f;
+    std::unordered_multimap<float, int> m_map_i_f;
 
     DataBasic() = default;
     ~DataBasic() = default;
@@ -84,14 +88,13 @@ class BroadcastBasic :
 
         virtual void SetUp(){
             n_proc  = PS::Comm::getNumberOfProc();
-            size_t N_data = 10000;
 
             this->data.resize(n_proc);
             this->ref.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                int seed = 19937*(1 + i);
-                this->data[i].generate(seed, N_data);
-                this->ref[i].generate(seed, N_data);
+                const auto seed = TEST_DEFS::mt_seed*(1 + i);
+                this->data[i].generate(seed, TEST_DEFS::n_data);
+                this->ref[i].generate( seed, TEST_DEFS::n_data);
             }
         }
 };
@@ -222,14 +225,12 @@ class BroadcastRecursive :
         virtual void SetUp(){
             n_proc  = PS::Comm::getNumberOfProc();
 
-            size_t N_data = 10000;
-
             this->data.resize(n_proc);
             this->ref.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                int seed = 19937*(1 + i);
-                this->data[i].generate(seed, N_data);
-                this->ref[i].generate(seed, N_data);
+                const auto seed = TEST_DEFS::mt_seed*(1 + i);
+                this->data[i].generate(seed, TEST_DEFS::n_data);
+                this->ref[i].generate( seed, TEST_DEFS::n_data);
             }
         }
 };

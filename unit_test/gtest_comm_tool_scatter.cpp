@@ -11,6 +11,11 @@
 #include <random>
 
 
+namespace TEST_DEFS {
+    const PS::S64 mt_seed = 7654321;
+    const PS::S64 n_data  = 10000;
+}
+
 //==========================================
 // MPI scatter
 //==========================================
@@ -92,13 +97,11 @@ class ScatterBasic :
             const int n_proc  = PS::Comm::getNumberOfProc();
 
             std::mt19937 mt;
-            mt.seed(19937);
-
-            const size_t n_data = 10000;
+            mt.seed(TEST_DEFS::mt_seed);
 
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                this->data[i].generate(n_proc, n_data, mt);
+                this->data[i].generate(n_proc, TEST_DEFS::n_data, mt);
             }
         }
 };
@@ -170,7 +173,7 @@ TEST_F(ScatterBasic, VecPairIntFloat){
     }
 }
 
-/*
+
 struct DataRecursive {
     std::vector<std::vector<std::vector<std::vector<int>>>>            vec_vvvi;
     std::vector<std::vector<std::vector<std::string>>>                 vec_vvs;
@@ -237,7 +240,7 @@ struct DataRecursive {
     }
 };
 
-class AllToAllRecursive :
+class ScatterRecursive :
     public ::testing::Test{
     protected:
         //--- for basic data pattern
@@ -247,57 +250,58 @@ class AllToAllRecursive :
             const int n_proc = PS::Comm::getNumberOfProc();
 
             std::mt19937 mt;
-            mt.seed(19937);
-
-            const size_t n_data = 10000;
+            mt.seed(TEST_DEFS::mt_seed);
 
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){;
-                this->data[i].generate(n_proc, n_data, mt);
+                this->data[i].generate(n_proc, TEST_DEFS::n_data, mt);
             }
         }
 };
 
 //--- unit test definition, CANNOT use "_" in test/test_case name.
-TEST_F(AllToAllRecursive, VecVecVecInt){
-    const int n_proc   = PS::Comm::getNumberOfProc();
-    const int rank     = PS::Comm::getRank();
-    auto recv_vec_vvvi = COMM_TOOL::allToAll(data[rank].vec_vvvi);
-
-    static_assert(std::is_same<decltype(recv_vec_vvvi),
-                               std::vector<std::vector<std::vector<std::vector<int>>>> >::value == true, "auto type check");
-
-    for(int i=0; i<n_proc; ++i){
-        EXPECT_EQ(recv_vec_vvvi.at(i), data.at(i).vec_vvvi.at(rank)) <<  "from = " << i << ", to = " << rank;
-    }
-}
-
-TEST_F(AllToAllRecursive, VecVecStr){
+TEST_F(ScatterRecursive, VecVecVecInt){
     const int n_proc  = PS::Comm::getNumberOfProc();
     const int rank    = PS::Comm::getRank();
-    auto recv_vec_vvs = COMM_TOOL::allToAll(data[rank].vec_vvs);
-
-    static_assert(std::is_same<decltype(recv_vec_vvs),
-                               std::vector<std::vector<std::vector<std::string>>> >::value == true, "auto type check");
 
     for(int i=0; i<n_proc; ++i){
-        EXPECT_EQ(recv_vec_vvs.at(i), data.at(i).vec_vvs.at(rank)) <<  "from = " << i << ", to = " << rank;
+        auto recv_vec_vvi = COMM_TOOL::scatter(data[rank].vec_vvvi, i);
+
+        static_assert(std::is_same<decltype(recv_vec_vvi),
+                                   std::vector<std::vector<std::vector<int>>> >::value == true, "auto type check");
+
+        EXPECT_EQ(recv_vec_vvi, data.at(i).vec_vvvi.at(rank)) <<  "from = " << i << ", to = " << rank;
     }
 }
 
-TEST_F(AllToAllRecursive, VecPairStrVecInt){
+TEST_F(ScatterRecursive, VecVecStr){
+    const int n_proc  = PS::Comm::getNumberOfProc();
+    const int rank    = PS::Comm::getRank();
+
+    for(int i=0; i<n_proc; ++i){
+        auto recv_vec_vs = COMM_TOOL::scatter(data[rank].vec_vvs, i);
+
+        static_assert(std::is_same<decltype(recv_vec_vs),
+                                   std::vector<std::vector<std::string>> >::value == true, "auto type check");
+
+        EXPECT_EQ(recv_vec_vs, data.at(i).vec_vvs.at(rank)) <<  "from = " << i << ", to = " << rank;
+    }
+}
+
+TEST_F(ScatterRecursive, VecPairStrVecInt){
     const int n_proc      = PS::Comm::getNumberOfProc();
     const int rank        = PS::Comm::getRank();
-    auto recv_vec_vp_s_vi = COMM_TOOL::allToAll(data[rank].vec_vp_s_vi);
-
-    static_assert(std::is_same<decltype(recv_vec_vp_s_vi),
-                               std::vector<std::vector<std::pair<std::string,
-                                                                 std::vector<int>>>> >::value == true, "auto type check");
 
     for(int i=0; i<n_proc; ++i){
-        EXPECT_EQ(recv_vec_vp_s_vi.at(i), data.at(i).vec_vp_s_vi.at(rank)) <<  "from = " << i << ", to = " << rank;
+        auto recv_vec_p_s_vi = COMM_TOOL::scatter(data[rank].vec_vp_s_vi, i);
+
+        static_assert(std::is_same<decltype(recv_vec_p_s_vi),
+                                   std::vector<std::pair<std::string,
+                                                         std::vector<int>>> >::value == true, "auto type check");
+
+        EXPECT_EQ(recv_vec_p_s_vi, data.at(i).vec_vp_s_vi.at(rank)) <<  "from = " << i << ", to = " << rank;
     }
 }
-*/
+
 
 #include "gtest_main_mpi.hpp"

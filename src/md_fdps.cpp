@@ -103,20 +103,19 @@ int main(int argc, char* argv[]){
     ext_sys_controller.broadcast(0);
 
     //--- load resume file.
-    if(System::get_istep() >= 0){
+    if(System::get_istep() < 0){
+        //--- illigal timestep
+        std::ostringstream oss;
+        oss << " istep = " << System::get_istep() << ", must be >= 0." << "\n";
+        throw std::logic_error(oss.str());
+    } else {
         //--- load resume file
         FILE_IO::ResumeFileManager init_loader{ MD_DEFS::resume_data_dir };
         init_loader.load(atom, System::profile, ext_sys_controller);
 
-        std::ostringstream oss;
-        oss << "  Rank = "    << PS::Comm::getRank()
-            << ": n_local = " << atom.getNumberOfParticleLocal()
-            << " / total = "  << atom.getNumberOfParticleGlobal() << "\n";
-        std::cout << oss.str() << std::flush;
-    } else {
-        std::ostringstream oss;
-        oss << " istep = " << System::get_istep() << ", must be >= 0." << "\n";
-        throw std::logic_error(oss.str());
+        //--- show statistics value
+        if(PS::Comm::getRank() == 0) std::cout << "\n" << std::flush;
+        Observer::show_psys_property(atom);
     }
 
     //--- devide atom particle in MPI processes
@@ -195,10 +194,12 @@ int main(int argc, char* argv[]){
                 dinfo.decomposeDomainAll(atom);
                 atom.exchangeParticle(dinfo);
 
+                //--- update intra pair list after psys.echangeParticle()
                 force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
-                force.update_force(atom, dinfo);
+
+                force.update_force(atom, dinfo, PS::MAKE_LIST_FOR_REUSE);
             } else {
-                force.update_force(atom, dinfo);
+                force.update_force(atom, dinfo, PS::REUSE_LIST);
             }
         #else
             //--- update domain info & exchange particle
@@ -207,7 +208,7 @@ int main(int argc, char* argv[]){
 
             //--- calculate intermolecular force in FDPS
             force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
-            force.update_force(atom, dinfo);
+            force.update_force(atom, dinfo, PS::MAKE_LIST);
         #endif
 
         //--- kick

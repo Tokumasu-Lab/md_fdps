@@ -9,6 +9,12 @@
 
 #include <random>
 
+
+namespace TEST_DEFS {
+    const PS::S64 mt_seed = 7654321;
+    const PS::S64 n_data  = 100000;
+}
+
 //==========================================
 // for Ser/Des std::vector<std::vector<T>>
 //==========================================
@@ -23,9 +29,7 @@ class SerDes :
             std::mt19937 mt;
             std::uniform_int_distribution<>  dist_int(0,10);
             std::uniform_real_distribution<> dist_real(-99.0, 99.0);
-            mt.seed(19937);
-
-            int64_t N_data = 100000;
+            mt.seed(TEST_DEFS::mt_seed);
 
             this->vec_vi.clear();
             this->vec_p_i_f.clear();
@@ -35,7 +39,7 @@ class SerDes :
             std::string      buff_str;
             buff_vi.clear();
             buff_str.clear();
-            for(int64_t i=0; i<N_data; ++i){
+            for(int64_t i=0; i<TEST_DEFS::n_data; ++i){
                 int data = dist_int(mt);
 
                 if(data == 10){

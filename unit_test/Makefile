@@ -24,6 +24,9 @@ GTEST_SRCS += $(REL)/gtest_cell_index.cpp
 GTEST_SRCS += $(REL)/gtest_fixed_vector.cpp
 GTEST_SRCS += $(REL)/gtest_basic_connect.cpp
 
+#--- loaspace array
+GTEST_SRCS += $(REL)/gtest_logspace_array.cpp
+
 #--- IntraPair::
 GTEST_SRCS += $(REL)/gtest_intra_pair.cpp
 
@@ -37,3 +40,8 @@ GTEST_SRCS += $(REL)/gtest_force_improper.cpp
 
 #--- file I/O test
 GTEST_SRCS += $(REL)/gtest_fileIO.cpp
+
+#--- analysis module test
+GTEST_SRCS += $(REL)/gtest_analysis_RDF.cpp
+GTEST_SRCS += $(REL)/gtest_analysis_MSD.cpp
+GTEST_SRCS += $(REL)/gtest_analysis_clustering.cpp

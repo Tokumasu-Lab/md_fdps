@@ -448,4 +448,52 @@ namespace Observer {
             this->count = 0;
         }
     };
+
+
+    template <class Tpsys>
+    void show_psys_property(Tpsys &atom){
+        const PS::S64 n_local = atom.getNumberOfParticleLocal();
+
+        PS::F64 charge_local = 0.0;
+        PS::F64 mass_local   = 0.0;
+        for(PS::S64 i=0; i<n_local; ++i){
+            charge_local += atom[i].getCharge();
+            mass_local   += atom[i].getMass();
+        }
+        charge_local = charge_local/Unit::coef_coulomb;
+        mass_local   = mass_local*Unit::mass_C*1.e3;
+
+        const auto n_local_list = COMM_TOOL::gather(n_local, 0);
+
+        const PS::F64 charge_total = PS::Comm::getSum(charge_local);
+        const PS::F64 mass_total   = PS::Comm::getSum(mass_local);
+
+        if(PS::Comm::getRank() != 0) return;
+
+        std::ostringstream oss;
+        oss << "ParticleSystem:" << std::endl;
+
+        PS::S64 n_global = 0;
+        for(const auto& n_loc : n_local_list){
+            n_global += n_loc;
+        }
+
+        for(size_t i_proc=0; i_proc<n_local_list.size(); ++i_proc){
+            oss << "  Rank = "    << i_proc
+                << ": n_local = " << n_local_list[i_proc]
+                << " / total = "  << n_global << "\n";
+        }
+
+        const PS::F64 mass_dens = mass_total*Normalize::getVolInv()*Unit::norm_dens/Unit::mass_C;
+        const PS::F64 num_dens  = n_global*Normalize::getVolInv();
+        
+        oss << std::scientific;
+        oss << "\n"
+            << "  total charge: " << charge_total << " [electron charge]" << "\n"
+            << "  total mass  : " << mass_total   << " [atomic weight]" << "\n"
+            << "  mass dencity: " << mass_dens    << " [g/cm^3]" << "\n"
+            << "  num  dencity: " << num_dens     << " [/angstrom^3]" << "\n"
+            << "\n";
+        std::cout << oss.str() << std::flush;
+    }
 }

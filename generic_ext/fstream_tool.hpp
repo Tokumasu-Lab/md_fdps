@@ -11,6 +11,7 @@
 #include <iomanip>
 
 #include <particle_simulator.hpp>
+#include "comm_tool.hpp"
 
 #include <sys/stat.h>
 
@@ -27,20 +28,22 @@ namespace FS_TOOL {
     void make_directory(const std::string &dir_name,
                         const PS::S32      rank = 0 ){
 
-        struct stat st;
-        if(PS::Comm::getRank() == rank){
-            if(stat(dir_name.c_str(), &st) != 0) {
-                int err = mkdir(dir_name.c_str(), 0777);
+        COMM_TOOL::check_proc_rank(rank);
+        if(PS::Comm::getRank() != rank) return;
 
-                if(err == -1){
-                    throw std::ios_base::failure("make the Directory: " + dir_name + " was failed.");
-                } else {
-                    std::ostringstream oss;
-                    oss << "the Directory " << dir_name << " is successfully made." << "\n";
-                    std::cout << oss.str() << std::flush;
-                }
+        struct stat st;
+        if(stat(dir_name.c_str(), &st) != 0) {
+            int err = mkdir(dir_name.c_str(), 0777);
+
+            if(err == -1){
+                throw std::ios_base::failure("make the Directory: " + dir_name + " was failed.");
+            } else {
+                std::ostringstream oss;
+                oss << "the Directory " << dir_name << " is successfully made." << "\n";
+                std::cout << oss.str() << std::flush;
             }
         }
+
     }
 
     /*
@@ -60,13 +63,14 @@ namespace FS_TOOL {
         void file_init(const std::string &file_name,
                        const PS::S32      rank = 0  ){
 
-            assert(rank >= 0);
+           COMM_TOOL::check_proc_rank(rank);
 
             if( this->ofs.is_open() ){ this->ofs.close(); }
             this->rank = rank;
             this->name = file_name;
 
             if(PS::Comm::getRank() != this->rank) return;
+
             this->ofs.open(file_name, std::ios::trunc);
 
             if(!ofs){
@@ -121,7 +125,7 @@ namespace FS_TOOL {
                          std::vector<std::string> &line_list,
                    const PS::S32                   rank = 0  ){
 
-        assert(rank >= 0);
+        COMM_TOOL::check_proc_rank(rank);
         line_list.clear();
 
         if(PS::Comm::getRank() == rank){
@@ -150,7 +154,8 @@ namespace FS_TOOL {
                          std::vector<Tdata> &data_list,
                    const PS::S32             rank = 0  ){
 
-        assert(rank >= 0);
+       COMM_TOOL::check_proc_rank(rank);
+
         data_list.clear();
 
         if(PS::Comm::getRank() == rank){

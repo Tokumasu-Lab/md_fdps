@@ -20,13 +20,19 @@ int main(int argc, char *argv[]) {
     EXT_SYS::Controller ext_sys_controller;
 
     if(PS::Comm::getRank() == 0) {
-        fprintf(stderr, "Number of processes: %d\n", PS::Comm::getNumberOfProc());
-        fprintf(stderr, "Number of threads per process: %d\n", PS::Comm::getNumberOfThread());
+
+        //--- display total threads for FDPS
+        std::ostringstream oss;
+        oss << "Number of processes          : " << PS::Comm::getNumberOfProc()   << "\n"
+            << "Number of threads per process: " << PS::Comm::getNumberOfThread() << "\n";
+        std::cout << oss.str() << std::flush;
 
         //--- initialize
-        std::cout << std::endl;
-        std::cout << "--- settings loaded in process: " << PS::Comm::getRank() << std::endl;
-        std::cout << std::endl;
+        oss.str("");
+        oss << "\n"
+            << "--- settings loaded in rank: " << PS::Comm::getRank() << "\n"
+            << "\n";
+        std::cout << oss.str() << std::flush;
 
         System::loading_sequence_condition(MD_DEFS::condition_sequence_file,
                                            ext_sys_sequence,
@@ -38,14 +44,24 @@ int main(int argc, char *argv[]) {
     System::broadcast_profile();
     ext_sys_sequence.broadcast(0);
     ext_sys_controller.broadcast(0);
-    std::cout << "--- sync in MPI broadcast ---" << std::endl;
+
+    {
+        std::ostringstream oss;
+        oss << "--- sync in MPI broadcast ---" << "\n";
+        std::cout << oss.str() << std::flush;
+    }
 
     System::InitDinfo(dinfo);
 
     //--- display settings
-    if(PS::Comm::getRank() == 1) {
-        std::cout << std::endl;
+    if(PS::Comm::getRank() == PS::Comm::getNumberOfProc()-1) {
+        std::cout << "\n"
+                  << "--- settings displayed in rank: " << PS::Comm::getRank() << "\n"
+                  << std::endl;
+
         System::print_profile();
+        System::print_initializer_setting();
+
         ext_sys_controller.print();
         ext_sys_sequence.print();
     }

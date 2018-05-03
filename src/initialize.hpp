@@ -126,9 +126,8 @@ namespace Initialize {
         v.x = dev*blz.gen( dist(rand) );
 
         //--- direction
-        v = VEC_EXT::rot_z(v, Unit::pi*dist(rand) );  // rotate in z-y-z Euler angle
-        v = VEC_EXT::rot_y(v, Unit::pi*dist(rand) );
-        v = VEC_EXT::rot_z(v, Unit::pi*dist(rand) );
+        v = VEC_EXT::rot_z(v, 2.0*Unit::pi*dist(rand) );
+        v = VEC_EXT::rot_y(v,     Unit::pi*dist(rand) );
 
         return v;
     }
@@ -291,7 +290,7 @@ namespace Initialize {
         //--- allocate arrays
         psys.setNumberOfParticleLocal(n_total);
 
-        std::cout << " Initialize: total atoms = " << n_total << std::endl;
+        std::cout << " Initialize: total atoms = " << n_total << "\n" << std::endl;
 
         //--- initialize random number & distribution generator
         const int                               seed = std::pow(2, 19) + 1;

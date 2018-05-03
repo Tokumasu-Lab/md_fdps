@@ -85,4 +85,96 @@ namespace STR_TOOL {
             return true;
         }
     }
+
+    /**
+    * @brief justify plan indicator for "std::string shape_str_vec_2D()".
+    */
+    enum class STR_POS {
+        left,
+        right,
+        internal,
+        center,
+    };
+
+    namespace _Impl {
+        void str_center(      std::ostream &s,
+                        const std::string  &str,
+                        const size_t        w   ){
+
+            const size_t space   = w - str.size();
+            const size_t s_back  = space/2;
+            const size_t s_front = space - s_back;
+
+            s << std::left;
+
+            if(s_front > 0){
+                s << std::setw(s_front) << " ";
+            }
+            s << str;
+            if(s_back > 0){
+                s << std::setw(s_back) << " ";
+            }
+        }
+    }
+
+    using StringList   =             std::vector<std::pair<std::string, STR_POS>>;
+    using StringList2D = std::vector<std::vector<std::pair<std::string, STR_POS>>>;
+
+    /**
+    * @brief justifing string as 2D grid
+    * @detail [line [word (string, pos)]]
+    */
+    std::string shape_str_vec_2d(const StringList2D &str_list_2D){
+
+        //--- get word_length
+        std::vector<size_t> w_len_list;
+        for(const auto& line : str_list_2D){
+            //--- allocate list
+            if(line.size() > w_len_list.size()){
+                size_t diff = line.size()-w_len_list.size();
+                for(size_t i=0; i<diff; ++i){
+                    w_len_list.push_back(0);
+                }
+            }
+
+            //--- get length
+            for(size_t i=0; i<line.size(); ++i){
+                w_len_list[i] = std::max(w_len_list[i], line[i].first.size());
+            }
+        }
+
+        //--- make output
+        std::ostringstream oss;
+        for(const auto& line : str_list_2D){
+            for(size_t i=0; i<line.size(); ++i){
+                oss << std::setw(w_len_list[i]);
+
+                switch (line[i].second){
+                    case STR_POS::left:
+                        oss << std::setw(w_len_list[i]);
+                        oss << std::left << line[i].first;
+                    break;
+
+                    case STR_POS::right:
+                        oss << std::setw(w_len_list[i]);
+                        oss << std::right << line[i].first;
+                    break;
+
+                    case STR_POS::internal:
+                        oss << std::setw(w_len_list[i]);
+                        oss << std::internal << line[i].first;
+                    break;
+
+                    case STR_POS::center:
+                        _Impl::str_center(oss, line[i].first, w_len_list[i]);
+                    break;
+
+                    default:
+                        throw std::invalid_argument("format error.");
+                }
+            }
+            oss << "\n";
+        }
+        return oss.str();
+    }
 }

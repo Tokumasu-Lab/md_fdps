@@ -11,6 +11,10 @@
 #include <random>
 
 
+namespace TEST_DEFS {
+    const PS::S64 mt_seed = 7654321;
+    const PS::S64 n_data  = 10000;
+}
 
 //==========================================
 // MPI allGather
@@ -78,12 +82,10 @@ class AllGatherBasic :
             n_proc  = PS::Comm::getNumberOfProc();
             id_proc = PS::Comm::getRank();
 
-            size_t N_data = 10000;
-
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                int seed = 19937*(1 + i);
-                this->data[i].generate(seed, N_data);
+                const auto seed = TEST_DEFS::mt_seed*(1 + i);
+                this->data[i].generate(seed, TEST_DEFS::n_data);
             }
         }
 };
@@ -216,12 +218,10 @@ class AllGatherRecursive :
             n_proc  = PS::Comm::getNumberOfProc();
             id_proc = PS::Comm::getRank();
 
-            size_t N_data = 10000;
-
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                int seed = 19937*(1 + i);
-                this->data[i].generate(seed, N_data);
+                const auto seed = TEST_DEFS::mt_seed*(1 + i);
+                this->data[i].generate(seed, TEST_DEFS::n_data);
             }
         }
 };

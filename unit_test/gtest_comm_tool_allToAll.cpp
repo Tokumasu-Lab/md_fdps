@@ -11,6 +11,11 @@
 #include <random>
 
 
+namespace TEST_DEFS {
+    const PS::S64 mt_seed = 7654321;
+    const PS::S64 n_data  = 10000;
+}
+
 //==========================================
 // MPI allToAll
 //==========================================
@@ -92,13 +97,11 @@ class AllToAllBasic :
             const int n_proc  = PS::Comm::getNumberOfProc();
 
             std::mt19937 mt;
-            mt.seed(19937);
-
-            const size_t n_data = 10000;
+            mt.seed(TEST_DEFS::mt_seed);
 
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                this->data[i].generate(n_proc, n_data, mt);
+                this->data[i].generate(n_proc, TEST_DEFS::n_data, mt);
             }
         }
 };
@@ -247,13 +250,11 @@ class AllToAllRecursive :
             const int n_proc = PS::Comm::getNumberOfProc();
 
             std::mt19937 mt;
-            mt.seed(19937);
-
-            const size_t n_data = 10000;
+            mt.seed(TEST_DEFS::mt_seed);
 
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){;
-                this->data[i].generate(n_proc, n_data, mt);
+                this->data[i].generate(n_proc, TEST_DEFS::n_data, mt);
             }
         }
 };

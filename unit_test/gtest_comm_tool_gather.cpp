@@ -12,6 +12,10 @@
 #include <random>
 
 
+namespace TEST_DEFS {
+    const PS::S64 mt_seed = 7654321;
+    const PS::S64 n_data  = 10000;
+}
 
 //==========================================
 // MPI Gather
@@ -76,12 +80,10 @@ class GatherBasic :
         virtual void SetUp(){
             const int n_proc  = PS::Comm::getNumberOfProc();
 
-            size_t N_data = 10000;
-
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                int seed = 19937*(1 + i);
-                this->data[i].generate(seed, N_data);
+                const auto seed = TEST_DEFS::mt_seed*(1 + i);
+                this->data[i].generate(seed, TEST_DEFS::n_data);
             }
         }
 };
@@ -101,7 +103,7 @@ TEST_F(GatherBasic, VecInt){
                 EXPECT_EQ(recv_vec_vi.at(i), data.at(i).vec_int) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vi.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vi.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -121,7 +123,7 @@ TEST_F(GatherBasic, VecVecInt){
                 EXPECT_EQ(recv_vec_vvi.at(i), data.at(i).vec_vec_int) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vvi.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vvi.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -140,7 +142,7 @@ TEST_F(GatherBasic, Str){
                 EXPECT_EQ(recv_vec_s.at(i), data.at(i).vec_str.at(0)) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_s.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_s.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -160,7 +162,7 @@ TEST_F(GatherBasic, VecStr){
                 EXPECT_EQ(recv_vec_vs.at(i), data.at(i).vec_str) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vs.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vs.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -181,7 +183,7 @@ TEST_F(GatherBasic, VecPairIntFloat){
                 EXPECT_EQ(recv_vec_vp_i_f.at(i), data.at(i).vec_pair_i_f) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vp_i_f.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vp_i_f.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -255,12 +257,10 @@ class GatherRecursive :
         virtual void SetUp(){
             const int n_proc  = PS::Comm::getNumberOfProc();
 
-            size_t N_data = 10000;
-
             this->data.resize(n_proc);
             for(int i=0; i<n_proc; ++i){
-                int seed = 19937*(1 + i);
-                this->data[i].generate(seed, N_data);
+                const auto seed = TEST_DEFS::mt_seed*(1 + i);
+                this->data[i].generate(seed, TEST_DEFS::n_data);
             }
         }
 };
@@ -281,7 +281,7 @@ TEST_F(GatherRecursive, VecVecVecInt){
                 EXPECT_EQ(recv_vec_vvvi.at(i), data.at(i).vec_vec_vec_int) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vvvi.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vvvi.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -301,7 +301,7 @@ TEST_F(GatherRecursive, VecVecStr){
                 EXPECT_EQ(recv_vec_vvs.at(i), data.at(i).vec_vec_str) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vvs.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vvs.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }
@@ -322,7 +322,7 @@ TEST_F(GatherRecursive, VecPairStrVecInt){
                 EXPECT_EQ(recv_vec_vp_s_vi.at(i), data.at(i).vec_pair_s_vi) << "rank = " << rank << ", root = " << i_proc;
             }
         } else {
-            EXPECT_EQ(recv_vec_vp_s_vi.size(), 0) << "rank = " << rank << ", root = " << i_proc;
+            EXPECT_TRUE( recv_vec_vp_s_vi.empty() ) << "rank = " << rank << ", root = " << i_proc;
         }
     }
 }

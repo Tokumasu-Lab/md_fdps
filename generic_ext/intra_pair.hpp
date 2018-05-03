@@ -1,6 +1,7 @@
 //***************************************************************************************
 /**
 * @file    intra_pair.hpp
+* @brief   generator function of intra pair list with FDPS.
 * @details FDPS version 4.0b or later is required.
 */
 //***************************************************************************************

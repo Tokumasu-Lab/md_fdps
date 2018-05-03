@@ -21,9 +21,9 @@ namespace MD_DEFS {
 
     const std::string model_dir{"./model/"};
 
-    const std::string pos_data_dir{"./posdata"};
-    const std::string resume_data_dir{"./resume"};
-    const std::string VMD_data_dir{"./pdb"};
+    const std::string pos_data_dir{   "./posdata"};
+    const std::string resume_data_dir{"./resume" };
+    const std::string VMD_data_dir{   "./pdb"    };
 
     constexpr size_t max_bond = 4;
 
@@ -49,8 +49,13 @@ namespace MD_DEFS {
         }
 
     public:
+        void clear(){
+            this->scale_LJ      = 1.0;
+            this->scale_coulomb = 1.0;
+        }
         IntraMask(){
-            this->_assign_impl(-1, 1.0, 1.0);
+            this->id = -1;
+            this->clear();
         }
         IntraMask(const ID_type id,
                   const PS::F32 scale_LJ,
@@ -69,6 +74,7 @@ namespace MD_DEFS {
             this->id = id;
             return *this;
         }
+        ID_type getId() const { return this->id; }
     };
     bool operator == (const IntraMask &lhs, const IntraMask &rhs){
         return (lhs.id            == rhs.id &&
@@ -89,9 +95,9 @@ namespace MD_DEFS {
     //! @return IntraMask.id = -1 means "not found". AtomID must be >= 0.
     IntraMask find_mask(const MaskList &list, const ID_type id){
         auto itr = std::find_if( list.begin(), list.end(),
-                                 [id](const IntraMask &mask){ return mask.id == id; } );
+                                 [id](const IntraMask &mask){ return mask.getId() == id; } );
         if(itr == list.end()){
-            return IntraMask{-1, 1.0, 1.0};    // id = -1: means "not found", AtomID must be >= 0.
+            return IntraMask{};    // return default value.
         } else {
             return *itr;
         }
@@ -100,7 +106,7 @@ namespace MD_DEFS {
     //! @return "true" means the id found in mask list.
     bool isFind_mask(const MaskList &list, const ID_type id){
         auto itr = std::find_if( list.begin(), list.end(),
-                                 [id](const IntraMask &mask){ return mask.id == id; } );
+                                 [id](const IntraMask &mask){ return mask.getId() == id; } );
         if(itr == list.end()){
             return false;
         } else {

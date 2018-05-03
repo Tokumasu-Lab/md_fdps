@@ -196,66 +196,106 @@ namespace System {
     void print_profile(){
         std::ostringstream oss;
 
-        oss << "system conditions:\n";
+        oss << "system condition:\n";
         oss << "  Time steps:\n";
-        oss << "    istep    = " << profile.get_istep() << "\n";
-        oss << "    nstep_st = " << profile.nstep_st    << "\n";
-        oss << "    nstep_ed = " << profile.nstep_ed    << "\n";
-        oss << "    dt       = " << profile.get_dt()    << "\n";
-        oss << "             = " << Unit::to_real_time( profile.get_dt() ) << " [fs]\n";
+        oss << "    istep    = " << std::setw(15) << profile.get_istep() << "\n";
+        oss << "    nstep_st = " << std::setw(15) << profile.nstep_st    << "\n";
+        oss << "    nstep_ed = " << std::setw(15) << profile.nstep_ed    << "\n";
+        oss << "\n";
+        oss << "    dt       = " << std::setw(15) << profile.get_dt()    << " (normalized)" << "\n";
+        oss << "             = " << std::setw(15) << Unit::to_real_time( profile.get_dt() ) << " [fs]\n";
         oss << "\n";
 
-        oss << "  Tree settings:\n";
-        oss << "    n_leaf_limit  = " << profile.n_leaf_limit  << "\n";
-        oss << "    coef_ema      = " << profile.coef_ema      << "\n";
-        oss << "    theta         = " << profile.theta         << "\n";
-        oss << "    n_group_limit = " << profile.n_group_limit << "\n";
-        oss << "    cycle_dinfo   = " << profile.cycle_dinfo   << "\n";
+        oss << "  FDPS Tree setting:\n";
+        oss << "    n_leaf_limit  = "<< std::setw(9) << profile.n_leaf_limit  << "\n";
+        oss << "    coef_ema      = "<< std::setw(9) << profile.coef_ema      << "\n";
+        oss << "    theta         = "<< std::setw(9) << profile.theta         << "\n";
+        oss << "    n_group_limit = "<< std::setw(9) << profile.n_group_limit << "\n";
+        oss << "    cycle_dinfo   = "<< std::setw(9) << profile.cycle_dinfo   << "\n";
         oss << "\n";
 
-        oss << "  Cut_off settings:\n";
+        oss << "  Cut_off setting:\n";
         oss << "    cut_off_intra   = " << std::setw(9) << std::setprecision(7) << profile.get_cut_off_intra() << " [angstrom]\n";
         oss << "    cut_off_LJ      = " << std::setw(9) << std::setprecision(7) << profile.get_cut_off_LJ()    << " [angstrom]\n";
-        oss << "    cut_off_coulomb :  fixed as " << Normalize::normCutOff_PM() << " at normalized space.\n";
+        oss << "    cut_off_coulomb = " << std::setw(9) << std::setprecision(7) << Normalize::normCutOff_PM()  << " (normalized) fixed value.\n";
         oss << "\n";
 
-        oss << "  Init molecule settings:\n";
-        oss << "    box       = (" << Normalize::getBoxSize().x
-            << ", "                << Normalize::getBoxSize().y
-            << ", "                << Normalize::getBoxSize().z << ") [angstrom]\n";
-        oss << "    ex_radius = "  << std::setw(9) << std::setprecision(7) << profile.get_ex_radius() << " [angstrom]\n";
-        oss << "    try_limit = "  << std::setw(9) <<                         profile.get_try_limit() << " [times]\n";
-        oss << "\n";
-
-        oss << "model conditions:\n";
+        oss << "loaded models:\n";
         if(System::model_list.size() != 0){
             for(auto m : System::model_list){
-                oss << "    model_name = " << m.first  << "\n";
-                oss << "    n_molecule = " << m.second << "\n";
-                oss << "\n";
+                oss << "  " << m.first  << "\n";
             }
         } else {
-            oss << "    free particle.\n";
-            oss << "\n";
+            oss << "    no models.\n";
         }
-
-        oss << "recording conditions:\n";
-        oss << "              " << std::setw(15) << "start    " << " | "
-                                << std::setw(15) << "interval  \n";
-        oss << "    pos     : " << std::setw(15) << profile.get_pos_start()       << " | "
-                                << std::setw(15) << profile.get_pos_interval()    << "\n";
-        oss << "    resume  : " << std::setw(15) << profile.get_resume_start()    << " | "
-                                << std::setw(15) << profile.get_resume_interval() << "\n";
-        oss << "    VMD     : " << std::setw(15) << profile.get_VMD_start()       << " | "
-                                << std::setw(15) << profile.get_VMD_interval()    << "\n";
         oss << "\n";
-        oss << "    energy  : " << std::setw(15) << profile.get_eng_start()     << " | "
-                                << std::setw(15) << profile.get_eng_interval()  << "\n";
-        oss << "    property: " << std::setw(15) << profile.get_prop_start()    << " | "
-                                << std::setw(15) << profile.get_prop_interval() << "\n";
+
+        oss << "recording condition:\n";
+        oss << "            " << std::setw(15) << "start    " << " | "
+                              << std::setw(15) << "interval  \n";
+        oss << "  pos     : " << std::setw(15) << profile.get_pos_start()       << " | "
+                              << std::setw(15) << profile.get_pos_interval()    << "\n";
+        oss << "  resume  : " << std::setw(15) << profile.get_resume_start()    << " | "
+                              << std::setw(15) << profile.get_resume_interval() << "\n";
+        oss << "  VMD     : " << std::setw(15) << profile.get_VMD_start()       << " | "
+                              << std::setw(15) << profile.get_VMD_interval()    << "\n";
+        oss << "\n";
+        oss << "  energy  : " << std::setw(15) << profile.get_eng_start()     << " | "
+                              << std::setw(15) << profile.get_eng_interval()  << "\n";
+        oss << "  property: " << std::setw(15) << profile.get_prop_start()    << " | "
+                              << std::setw(15) << profile.get_prop_interval() << "\n";
         oss << "\n";
 
         //--- output
+        std::cout << oss.str() << std::flush;
+    }
+
+    void print_initializer_setting(){
+        std::ostringstream oss;
+
+        oss << "initializer setting:" << "\n";
+
+        oss << "  box       = (" << Normalize::getBoxSize().x << ", "
+                                 << Normalize::getBoxSize().y << ", "
+                                 << Normalize::getBoxSize().z << ") [angstrom]\n";
+        oss << "\n";
+        oss << "  ex_radius = "  << std::setw(9) << std::setprecision(7) << profile.get_ex_radius() << " [angstrom]\n";
+        oss << "  try_limit = "  << std::setw(9) <<                         profile.get_try_limit() << " [times]\n";
+        oss << "\n";
+
+        STR_TOOL::StringList2D str_list_2d;
+        STR_TOOL::StringList   line;
+        PS::U64                n_total = 0;
+        for(size_t i=0; i<model_list.size(); ++i){
+            if(model_list[i].second <= 0) continue;
+
+            line.clear();
+
+            line.push_back( std::make_pair("  model: ", STR_TOOL::STR_POS::left) );
+            line.push_back( std::make_pair(ENUM::what(model_list[i].first),
+                                                         STR_TOOL::STR_POS::left) );
+            line.push_back( std::make_pair(" | "       , STR_TOOL::STR_POS::left) );
+
+            if(model_template.size() > i){
+                n_total += model_list[i].second*model_template[i].size();
+                line.push_back( std::make_pair(std::to_string(model_template[i].size()),
+                                                         STR_TOOL::STR_POS::right) );
+                line.push_back( std::make_pair(" atoms * ", STR_TOOL::STR_POS::left) );
+            }
+            line.push_back( std::make_pair(std::to_string(model_list[i].second),
+                                                         STR_TOOL::STR_POS::right) );
+            line.push_back( std::make_pair(" molecule" , STR_TOOL::STR_POS::left) );
+
+            str_list_2d.push_back(line);
+        }
+
+        oss << STR_TOOL::shape_str_vec_2d(str_list_2d);
+        if(n_total > 0){
+            oss << "\n"
+                << "  total " << n_total << " atoms" << "\n";
+        }
+        oss << "\n";
+
         std::cout << oss.str() << std::flush;
     }
 

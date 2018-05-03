@@ -5,7 +5,7 @@ export GTEST_CATCH_EXCEPTIONS=0
 
 usage_exit() {
 	echo "Usage: $0 [-j n_core] [-m n_mpi] [-o n_omp]"
-	echo "    n_core: # of core for make. used as 'make -j n_core' internally."
+	echo "    n_core: # of core for make. used as 'make -j (n_core)' internally."
 	echo "    n_mpi : # of process for MPI."
 	echo "    n_omp : # of threads for OpenMP."
 	exit 1
@@ -59,6 +59,9 @@ ${EXE_DIR}/gtest_cell_index
 ${EXE_DIR}/gtest_fixed_vector
 ${EXE_DIR}/gtest_basic_connect
 
+#--- logspace array
+${EXE_DIR}/gtest_logspace_array
+
 #--- IntraPair::
 mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_intra_pair
 
@@ -72,3 +75,8 @@ mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_impro
 
 #--- file I/O test
 mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_fileIO
+
+#--- analysis module test
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_analysis_RDF
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_analysis_MSD
+mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_analysis_clustering

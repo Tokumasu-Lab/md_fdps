@@ -17,6 +17,24 @@
 #include "md_setting.hpp"
 
 
+class EP_ParticleMesh {
+private:
+    PS::F32vec pos;
+    PS::F32    charge;
+
+public:
+    PS::F32vec getPos()                const { return this->pos;    }
+    PS::F32    getChargeParticleMesh() const { return this->charge; }
+
+    void setPos(const PS::F32vec &pos_new) { this->pos = pos_new; }
+
+    template <class Tptcl>
+    void copyFromFP(const Tptcl &ptcl){
+        this->pos    = ptcl.getPos();
+        this->charge = ptcl.getChargeParticleMesh();
+    }
+};
+
 /**
 * @brief force calculater interface class.
 */
@@ -27,27 +45,8 @@ private:
     PS::TreeForForceShort<ForceInter<PS::F32>, EP_inter, EP_inter>::Scatter tree_inter;
     PS::TreeForForceShort<ForceIntra<PS::F32>, EP_intra, EP_intra>::Scatter tree_intra;
 
-    #ifdef REUSE_INTRA_LIST
-        //--- temporary buffer for PM
-        class EP_ParticleMesh {
-        private:
-            PS::F32vec pos;
-            PS::F32    charge;
-
-        public:
-            PS::F32vec getPos()                const { return this->pos;    }
-            PS::F32    getChargeParticleMesh() const { return this->charge; }
-
-            void setPos(const PS::F32vec &pos_new) { this->pos = pos_new; }
-
-            template <class Tptcl>
-            void copyFromFP(const Tptcl &ptcl){
-                this->pos    = ptcl.getPos();
-                this->charge = ptcl.getChargeParticleMesh();
-            }
-        };
-        PS::ParticleSystem<EP_ParticleMesh> pm_psys_buff;
-    #endif
+    //--- temporary buffer for PM
+    PS::ParticleSystem<EP_ParticleMesh> pm_ep_buff;
 
     //--- intra pair list maker
     struct GetBond {
@@ -71,9 +70,7 @@ public:
                                     System::profile.n_leaf_limit,
                                     System::profile.n_group_limit);
 
-        #ifdef REUSE_INTRA_LIST
-            this->pm_psys_buff.initialize();
-        #endif
+        this->pm_ep_buff.initialize();
     }
 
     /**
@@ -105,10 +102,10 @@ public:
     /**
     * @brief update intra pair list at each atom.
     */
-    template <class Tpsys, class Tdinfo, class Tmask>
-    void update_intra_pair_list(      Tpsys  &atom,
-                                      Tdinfo &dinfo,
-                                const Tmask  &mask_table){
+    template <class Tptcl, class Tdinfo, class Tmask>
+    void update_intra_pair_list(      PS::ParticleSystem<Tptcl> &atom,
+                                      Tdinfo                    &dinfo,
+                                const Tmask                     &mask_table){
 
         //--- get neighbor EP_intra information (do not calculate force)
         this->setRcut();
@@ -117,9 +114,8 @@ public:
                                        dinfo                   );
 
         const PS::S32 n_local = atom.getNumberOfParticleLocal();
-        if(n_local == 0) return;
 
-        AtomConnect::clear_intra_pair_table();
+        Tptcl::clear_intra_pair_table();
 
         #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
             //--- clear & allocate
@@ -157,7 +153,7 @@ public:
                       const PS::INTERACTION_LIST_MODE  reuse_mode = PS::MAKE_LIST){
 
         //--- clear force
-        PS::S64 n_local = atom.getNumberOfParticleLocal();
+        const PS::S64 n_local = atom.getNumberOfParticleLocal();
         for(PS::S64 i=0; i<n_local; ++i){
             atom[i].clear();
         }
@@ -168,15 +164,15 @@ public:
         //* PM part
         //=================
         #ifdef REUSE_INTRA_LIST
-            this->pm_psys_buff.setNumberOfParticleLocal(n_local);
+            this->pm_ep_buff.setNumberOfParticleLocal(n_local);
             for(PS::S64 i=0; i<n_local; ++i){
-                this->pm_psys_buff[i].copyFromFP(atom[i]);
+                this->pm_ep_buff[i].copyFromFP(atom[i]);
             }
-            this->pm_psys_buff.adjustPositionIntoRootDomain(dinfo);
-            this->pm_psys_buff.exchangeParticle(dinfo);
+            this->pm_ep_buff.adjustPositionIntoRootDomain(dinfo);
+            this->pm_ep_buff.exchangeParticle(dinfo);
 
             pm.setDomainInfoParticleMesh(dinfo);
-            pm.setParticleParticleMesh(this->pm_psys_buff, true);   // clear previous charge information
+            pm.setParticleParticleMesh(this->pm_ep_buff, true);   // clear previous charge information
             pm.calcMeshForceOnly();
         #else
             pm.setDomainInfoParticleMesh(dinfo);
