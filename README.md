@@ -89,8 +89,8 @@ $ mpirun -np 8 --bind-to socket -npersocket 1 -x OMP_NUM_THREADS=12 md_fdps.x
     - NVT
     - NPT
   - 基本的な解析
-    - RDF **(ユニットテストまで実装)**
-    - MSD **(ユニットテストまで実装)**
+    - Radial Distribution Function (RDF) **(ユニットテストまで実装)**
+    - Mean Square Displacement (MSD) **(ユニットテストまで実装)**
     - Clustering **(ユニットテストまで実装)**
   - 基本的な可視化
     - VMD
@@ -145,9 +145,9 @@ $ make test_param
 ここで， `[model_name]` は `***.mol2` , `***.param` ファイルの拡張子を除いたファイル名の部分で，両方のパラメータファイルがセットになっている必要がある．
 
 ### 機能実験用の定義済マクロ
-- REUSE_INTRA_LIST
-  - 分子内ペアリストの構築を毎ステップではなく cycle_dinfo 回使いまわす．  
-    PS::ParticleMesh との相性が悪く，併用すると系が爆発する．
+- REUSE_INTERACTION_LIST
+  - FDPSの相互作用リストと分子内ペアリストを毎ステップ作り直さずに cycle_dinfo 回使いまわす．  
+    現状の PS::ParticleMesh の仕様の制限から通信量が増加する．
 
 ### Contact
 東北大学　流体科学研究所  

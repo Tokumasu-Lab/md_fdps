@@ -180,19 +180,27 @@ int main(int argc, char* argv[]){
         prop_ave.record( System::profile, prop );
 
         //--- kick
-        //kick(0.5*System::get_dt(), atom);
+        //ATOM_MOVE::kick(0.5*System::get_dt(), atom);
         ext_sys_controller.kick(0.5*System::get_dt(), atom);
 
         //--- drift
-        //drift(System::get_dt(), atom);
-        ext_sys_controller.drift(System::get_dt(), atom);
+        ATOM_MOVE::drift(System::get_dt(), atom);
+        //ext_sys_controller.drift(System::get_dt(), atom);
         atom.adjustPositionIntoRootDomain(dinfo);
 
-        #ifdef REUSE_INTRA_LIST
+        #ifdef REUSE_INTERACTION_LIST
             //--- update domain info & exchange particle
             if( System::isDinfoUpdate() ){
                 dinfo.decomposeDomainAll(atom);
                 atom.exchangeParticle(dinfo);
+
+                /*
+                if(PS::Comm::getRank() == 0){
+                    std::ostringstream oss;
+                    oss << "  -- i_step = " << System::get_istep() << ", update dinfo" << "\n";
+                    std::cout << oss.str() << std::flush;
+                }
+                */
 
                 //--- update intra pair list after psys.echangeParticle()
                 force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
@@ -212,7 +220,7 @@ int main(int argc, char* argv[]){
         #endif
 
         //--- kick
-        //kick(0.5*System::get_dt(), atom);
+        //ATOM_MOVE::kick(0.5*System::get_dt(), atom);
         ext_sys_controller.kick(0.5*System::get_dt(), atom);
 
         //--- nest step

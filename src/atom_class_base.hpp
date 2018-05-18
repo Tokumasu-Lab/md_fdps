@@ -208,6 +208,10 @@ public:
     inline void addFieldCoulomb(const PS::Vector3<Tf> &f){ this->field_coulomb += f; }
     inline void addPotCoulomb(  const Tf              &p){ this->pot_coulomb   += p; }
 
+    //--- interface for ParticleMesh wrapper
+    inline void addFieldParticleMesh(const PS::Vector3<Tf> &f){ this->field_coulomb += f; }
+    inline void addPotParticleMesh(  const Tf              &p){ this->pot_coulomb   += p; }
+
     template <class T>
     void copyForceCoulomb(const T &f){
         this->field_coulomb  = f.getFieldCoulomb();

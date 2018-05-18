@@ -14,26 +14,9 @@
 #include "md_coef_table.hpp"
 #include "ff_intra_force.hpp"
 #include "ff_inter_force.hpp"
+#include "ff_pm_wrapper.hpp"
 #include "md_setting.hpp"
 
-
-class EP_ParticleMesh {
-private:
-    PS::F32vec pos;
-    PS::F32    charge;
-
-public:
-    PS::F32vec getPos()                const { return this->pos;    }
-    PS::F32    getChargeParticleMesh() const { return this->charge; }
-
-    void setPos(const PS::F32vec &pos_new) { this->pos = pos_new; }
-
-    template <class Tptcl>
-    void copyFromFP(const Tptcl &ptcl){
-        this->pos    = ptcl.getPos();
-        this->charge = ptcl.getChargeParticleMesh();
-    }
-};
 
 /**
 * @brief force calculater interface class.
@@ -41,12 +24,15 @@ public:
 class CalcForce {
 private:
     //--- FDPS object
-    PS::PM::ParticleMesh pm;
     PS::TreeForForceShort<ForceInter<PS::F32>, EP_inter, EP_inter>::Scatter tree_inter;
     PS::TreeForForceShort<ForceIntra<PS::F32>, EP_intra, EP_intra>::Scatter tree_intra;
 
-    //--- temporary buffer for PM
-    PS::ParticleSystem<EP_ParticleMesh> pm_ep_buff;
+    //--- ParticleMesh
+    #ifdef REUSE_INTERACTION_LIST
+        FORCE::PM::CalcForceParticleMesh pm;
+    #else
+        FORCE::PM::ParticleMesh pm;
+    #endif
 
     //--- intra pair list maker
     struct GetBond {
@@ -70,7 +56,7 @@ public:
                                     System::profile.n_leaf_limit,
                                     System::profile.n_group_limit);
 
-        this->pm_ep_buff.initialize();
+        FORCE::PM::checkMeshSize(n_total);
     }
 
     /**
@@ -112,6 +98,11 @@ public:
         this->tree_intra.calcForceAll( IntraPair::dummy_func{},
                                        atom,
                                        dinfo                   );
+    //    this->tree_intra.calcForceAll( IntraPair::dummy_func{},
+    //                                   atom,
+    //                                   dinfo,
+    //                                   false,
+    //                                   PS::MAKE_LIST_FOR_REUSE );
 
         const PS::S32 n_local = atom.getNumberOfParticleLocal();
 
@@ -161,40 +152,21 @@ public:
         this->setRcut();
 
         //=================
-        //* PM part
+        // PM part
         //=================
-        #ifdef REUSE_INTRA_LIST
-            this->pm_ep_buff.setNumberOfParticleLocal(n_local);
-            for(PS::S64 i=0; i<n_local; ++i){
-                this->pm_ep_buff[i].copyFromFP(atom[i]);
-            }
-            this->pm_ep_buff.adjustPositionIntoRootDomain(dinfo);
-            this->pm_ep_buff.exchangeParticle(dinfo);
-
-            pm.setDomainInfoParticleMesh(dinfo);
-            pm.setParticleParticleMesh(this->pm_ep_buff, true);   // clear previous charge information
-            pm.calcMeshForceOnly();
-        #else
-            pm.setDomainInfoParticleMesh(dinfo);
-            pm.setParticleParticleMesh(atom, true);   // clear previous charge information
-            pm.calcMeshForceOnly();
-        #endif
-
-        //--- get potential and field
-        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
-            #pragma omp parallel for
-        #endif
-        for(PS::S64 i=0; i<n_local; ++i){
-            atom[i].addFieldCoulomb( Normalize::realPMForce(     -pm.getForce(     atom[i].getPos() ) ) );
-            atom[i].addPotCoulomb(   Normalize::realPMPotential( -pm.getPotential( atom[i].getPos() ) ) );
-        }
+        this->pm.setDomainInfoParticleMesh(dinfo);
+        this->pm.setParticleParticleMesh(atom, true);   // clear previous charge information
+        this->pm.calcMeshForceOnly();
+        this->pm.writeBackForce(atom);
 
         //=================
-        //* PP part
+        // PP part
         //=================
         this->tree_inter.calcForceAll(FORCE::calcForceShort<ForceInter<PS::F32>, EP_inter, EP_inter>,
                                       atom,
-                                      dinfo);
+                                      dinfo,
+                                      true,
+                                      reuse_mode);
         for(PS::S64 i=0; i<n_local; ++i){
             const auto& result = tree_inter.getForce(i);
             atom[i].addFieldCoulomb( result.getFieldCoulomb() );
@@ -205,12 +177,23 @@ public:
         }
 
         //=================
-        //* Intra force part
+        // Intra force part
         //=================
         //--- get neighbor EP_intra information (do not calculate force)
-        this->tree_intra.calcForceAll(IntraPair::dummy_func{},
-                                      atom,
-                                      dinfo);
+        #ifdef REUSE_INTERACTION_LIST
+            this->tree_intra.calcForceAll( IntraPair::dummy_func{},
+                                           atom,
+                                           dinfo                   );  // make list in this->update_intra_pair_list()
+        //    this->tree_intra.calcForceAll( IntraPair::dummy_func{},
+        //                                   atom,
+        //                                   dinfo,
+        //                                   false,
+        //                                   PS::REUSE_LIST          );  // make list in this->update_intra_pair_list()
+        #else
+            this->tree_intra.calcForceAll( IntraPair::dummy_func{},
+                                           atom,
+                                           dinfo                   );  // remake list
+        #endif
         //--- calculate force
         FORCE::calcForceIntra(this->tree_intra, atom);
     }

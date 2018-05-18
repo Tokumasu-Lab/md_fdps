@@ -391,6 +391,8 @@ namespace EXT_SYS {
         constexpr PS::F64 e6 = e4/42.0;
         constexpr PS::F64 e8 = e6/72.0;
 
+        constexpr PS::F64 move_limit = 0.5;
+
         PS::F64 p    = this->state.v_press*dt;
         PS::F64 a    = std::exp(p);
         PS::F64 a2   = a*a;
@@ -403,7 +405,7 @@ namespace EXT_SYS {
         for(PS::F64 i=0; i<n_local; ++i){
             PS::F64vec move    = psys[i].getVel()*b;
             PS::F64vec pos_new = psys[i].getPos() + Normalize::normDrift(move*a2);
-            
+
             psys[i].addTrj(move);
             psys[i].setPos(pos_new);
 
@@ -413,10 +415,14 @@ namespace EXT_SYS {
         }
         max_move = std::sqrt(max_move);
 
-        if(max_move > 0.5){
-            std::cerr << "  max_move = " << max_move << std::endl;
+        //--- simple error check
+        if(max_move > move_limit){
+            std::ostringstream oss;
+            oss << "  proc = " << PS::Comm::getRank() << ", max_move = " << max_move << "\n";
+            std::cerr << oss.str() << std::flush;
             throw std::logic_error("atoms speed runaway");
         }
+
         return max_move;
     }
 

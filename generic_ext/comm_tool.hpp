@@ -35,4 +35,11 @@ namespace COMM_TOOL {
         }
     }
 
+    /*
+    * @breif wrqpper for barrier
+    */
+    void barrier(MPI_Comm comm = MPI_COMM_WORLD){
+        MPI_Barrier(comm);
+    }
+
 }

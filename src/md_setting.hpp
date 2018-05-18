@@ -33,8 +33,8 @@ namespace System {
         PS::F64 dt       = 0.0;
 
         //--- for Tree
-        PS::F64 coef_ema      = -1.0;
-        PS::F64 theta         = -1.0;
+        PS::F32 coef_ema      = -1.0;
+        PS::F32 theta         = -1.0;
         PS::S32 n_leaf_limit  = -1;
         PS::S32 n_group_limit = -1;
         PS::S32 cycle_dinfo   = -1;

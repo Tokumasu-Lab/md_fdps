@@ -190,9 +190,10 @@ class Atom_FP :
                + this->getFieldCoulomb()*this->getCharge();
     }
     inline PS::F32vec getVirial() const {
+        const PS::F32 virial_coulomb = 1.0/3.0*this->getPotCoulomb()*this->getCharge();
         return   this->getVirialIntra()
                + this->getVirialLJ()
-               + this->getPotCoulomb()*this->getCharge();
+               + PS::F32vec{virial_coulomb, virial_coulomb, virial_coulomb};
     }
 
     //--- copy model property from molecular model template (using FP class)

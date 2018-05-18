@@ -8,6 +8,8 @@
 //      model_name, n_molecule
 //          model_name [-]       string, must be same to the file name in "./model/"
 //          n_molecule [integer]
+//
+//      note: the models only listed in below will be loaded into parameter table.
 //=====================================================================
 @<CONDITION>MOLECULE
 AA_C6H5_CH3        80
@@ -26,8 +28,9 @@ AA_Ar               0  // 860
 
 //=====================================================================
 //  setting of initializer:
-//      radius    [angstrom]  lower limit of the distance between intermolecular atoms.
-//      try_limit [intger]    max number of trying to insert molecule.
+//      ex_radius, try_limit
+//          radius    [angstrom]  lower limit of the distance between intermolecular atoms.
+//          try_limit [intger]    max number of trying to insert molecule.
 //=====================================================================
 @<CONDITION>EX_RADIUS
 5.0   5000
