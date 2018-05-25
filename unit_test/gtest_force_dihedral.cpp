@@ -108,14 +108,17 @@ void check_result(const std::vector<ForceData> &result,
     EXPECT_EQ(result.size(), ref.size());
     const PS::S32 n = std::min(result.size(), ref.size());
 
-    for(PS::S32 i=0; i<n; ++i){
-        EXPECT_EQ(result[i].count, ref[i].count) << " i= " << i;
-        EXPECT_FLOAT_EQ(result[i].degree   , ref[i].degree   ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(result[i].potential, ref[i].potential, TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(result[i].force.x  , ref[i].force.x  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(result[i].force.y  , ref[i].force.y  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(result[i].force.z  , ref[i].force.z  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+    if(PS::Comm::getRank() == 0){
+        for(PS::S32 i=0; i<n; ++i){
+            EXPECT_EQ(result[i].count, ref[i].count) << " i= " << i;
+            EXPECT_FLOAT_EQ(result[i].degree   , ref[i].degree   ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(result[i].potential, ref[i].potential, TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(result[i].force.x  , ref[i].force.x  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(result[i].force.y  , ref[i].force.y  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(result[i].force.z  , ref[i].force.z  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        }
     }
+    COMM_TOOL::barrier();
 }
 
 template <class Tptcl, class Tdata>

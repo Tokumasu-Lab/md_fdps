@@ -468,10 +468,16 @@ namespace MODEL {
 
         //--- set value
         for(size_t i=0; i<order; ++i){
+            //--- check range: [0.0, 1.0]
+            const PS::F32 value = std::stof(str_list[i+1]);
+            if(value < 0.0 || 1.0 < value){
+                throw std::invalid_argument("the scaling factor must be in range [0.0, 1.0]. value = " + str_list[i+1]);
+            }
+
             if(       str_list[0] == DEFS::scaling_LJ_tag){
-                coef_scaling[i].scale_LJ      = std::stof(str_list[i+1]);
+                coef_scaling[i].scale_LJ      = value;
             } else if(str_list[0] == DEFS::scaling_coulomb_tag){
-                coef_scaling[i].scale_coulomb = std::stof(str_list[i+1]);
+                coef_scaling[i].scale_coulomb = value;
             }
         }
     }

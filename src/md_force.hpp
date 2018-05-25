@@ -24,8 +24,8 @@
 class CalcForce {
 private:
     //--- FDPS object
-    PS::TreeForForceShort<ForceInter<PS::F32>, EP_inter, EP_inter>::Scatter tree_inter;
-    PS::TreeForForceShort<ForceIntra<PS::F32>, EP_intra, EP_intra>::Scatter tree_intra;
+    PS::TreeForForceShort<ForceInter<PS::F64>, EP_inter, EP_inter>::Scatter tree_inter;
+    PS::TreeForForceShort<ForceIntra<PS::F64>, EP_intra, EP_intra>::Scatter tree_intra;
 
     //--- ParticleMesh
     #ifdef REUSE_INTERACTION_LIST
@@ -45,6 +45,9 @@ private:
     IntraPair::AngleListMaker<  MD_DEFS::ID_type, GetBond> angle_list_maker;
     IntraPair::TorsionListMaker<MD_DEFS::ID_type, GetBond> torsion_list_maker;
 
+    //--- result buffer
+    std::vector<ForceInter<PS::F64>> inter_force_buff;
+
 public:
     void init(const PS::S64 &n_total){
         this->tree_inter.initialize(n_total,
@@ -63,10 +66,15 @@ public:
     * @brief update cutoff length in normalized space.
     */
     void setRcut(){
-        EP_inter::setRcut_LJ(      Normalize::normCutOff( System::get_cut_off_LJ() ) );
-        EP_inter::setRcut_coulomb( Normalize::normCutOff_PM() );
+        EP_inter::setR_cut_LJ(      Normalize::normCutOff( System::get_cut_off_LJ() ) );
+        EP_inter::setR_cut_coulomb( Normalize::normCutOff_PM() );
 
-        EP_intra::setRcut( Normalize::normCutOff( System::get_cut_off_intra() ) );
+        EP_intra::setR_cut( Normalize::normCutOff( System::get_cut_off_intra() ) );
+
+        #ifdef REUSE_INTERACTION_LIST
+            EP_inter::setR_margin( Normalize::normCutOff( 2.0 ) );
+            EP_intra::setR_margin( Normalize::normCutOff( 2.0 ) );
+        #endif
 
         //--- check cut off length
         if(EP_inter::getRcut_LJ() >= 0.5 ||
@@ -98,11 +106,6 @@ public:
         this->tree_intra.calcForceAll( IntraPair::dummy_func{},
                                        atom,
                                        dinfo                   );
-    //    this->tree_intra.calcForceAll( IntraPair::dummy_func{},
-    //                                   atom,
-    //                                   dinfo,
-    //                                   false,
-    //                                   PS::MAKE_LIST_FOR_REUSE );
 
         const PS::S32 n_local = atom.getNumberOfParticleLocal();
 
@@ -136,17 +139,51 @@ public:
     }
 
     /**
-    * @brief update force on atom.
+    * @brief update intramolecular force on atom.
     */
     template <class Tpsys, class Tdinfo>
-    void update_force(      Tpsys                     &atom,
-                            Tdinfo                    &dinfo,
-                      const PS::INTERACTION_LIST_MODE  reuse_mode = PS::MAKE_LIST){
+    void update_intra_force(Tpsys  &atom,
+                            Tdinfo &dinfo){
 
-        //--- clear force
+        //=================
+        // Intra force part
+        //=================
+        //--- clear intramolecular part
         const PS::S64 n_local = atom.getNumberOfParticleLocal();
+
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
+        #endif
         for(PS::S64 i=0; i<n_local; ++i){
-            atom[i].clear();
+            atom[i].clearForceIntra();
+        }
+
+        this->setRcut();
+
+        //--- get neighbor EP_intra information (do not calculate force)
+        this->tree_intra.calcForceAll( IntraPair::dummy_func{},
+                                       atom,
+                                       dinfo                   );  // remake list
+        //--- calculate force
+        FORCE::calcForceIntra(this->tree_intra, atom);
+    }
+
+    /**
+    * @brief update intermolecular force on atom (naive version).
+    */
+    template <class Tpsys, class Tdinfo>
+    void update_inter_force_naive(      Tpsys                     &atom,
+                                        Tdinfo                    &dinfo,
+                                  const PS::INTERACTION_LIST_MODE  reuse_mode = PS::MAKE_LIST){
+
+        //--- clear intermolecular part
+        const PS::S64 n_local = atom.getNumberOfParticleLocal();
+
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
+        #endif
+        for(PS::S64 i=0; i<n_local; ++i){
+            atom[i].clearForceInter();
         }
 
         this->setRcut();
@@ -162,39 +199,126 @@ public:
         //=================
         // PP part
         //=================
-        this->tree_inter.calcForceAll(FORCE::calcForceShort<ForceInter<PS::F32>, EP_inter, EP_inter>,
+        this->tree_inter.calcForceAll(FORCE::calcForceShort_naive{},
                                       atom,
                                       dinfo,
                                       true,
                                       reuse_mode);
         for(PS::S64 i=0; i<n_local; ++i){
             const auto& result = tree_inter.getForce(i);
-            atom[i].addFieldCoulomb( result.getFieldCoulomb() );
-            atom[i].addPotCoulomb(   result.getPotCoulomb()   );
-            atom[i].addForceLJ(      result.getForceLJ()      );
             atom[i].addPotLJ(        result.getPotLJ()        );
+            atom[i].addForceLJ(      result.getForceLJ()      );
             atom[i].addVirialLJ(     result.getVirialLJ()     );
+            atom[i].addPotCoulomb(   result.getPotCoulomb()   );
+            atom[i].addFieldCoulomb( result.getFieldCoulomb() );
+        }
+    }
+
+    /**
+    * @brief   update intermolecular force on atom (optimized version).
+    * @details delayed evaluation for intramolecular mask. if blanch is removed in P-P calculater kernel.
+    */
+    template <class Tpsys, class Tdinfo>
+    void update_inter_force(      Tpsys                     &atom,
+                                  Tdinfo                    &dinfo,
+                            const PS::INTERACTION_LIST_MODE  reuse_mode = PS::MAKE_LIST){
+
+        //--- debug use
+        #ifdef FORCE_NAIVE_IMPL
+            this->update_inter_force_naive(atom, dinfo, reuse_mode);
+            return;
+        #endif
+
+        //--- clear intermolecular part
+        const PS::S64 n_local = atom.getNumberOfParticleLocal();
+
+        this->inter_force_buff.resize(n_local);
+
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
+        #endif
+        for(PS::S64 i=0; i<n_local; ++i){
+            atom[i].clearForceInter();
         }
 
-        //=================
-        // Intra force part
-        //=================
-        //--- get neighbor EP_intra information (do not calculate force)
-        #ifdef REUSE_INTERACTION_LIST
-            this->tree_intra.calcForceAll( IntraPair::dummy_func{},
-                                           atom,
-                                           dinfo                   );  // make list in this->update_intra_pair_list()
-        //    this->tree_intra.calcForceAll( IntraPair::dummy_func{},
-        //                                   atom,
-        //                                   dinfo,
-        //                                   false,
-        //                                   PS::REUSE_LIST          );  // make list in this->update_intra_pair_list()
-        #else
-            this->tree_intra.calcForceAll( IntraPair::dummy_func{},
-                                           atom,
-                                           dinfo                   );  // remake list
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
         #endif
-        //--- calculate force
-        FORCE::calcForceIntra(this->tree_intra, atom);
+        for(PS::S64 i=0; i<n_local; ++i){
+            this->inter_force_buff[i].clear();
+        }
+
+        this->setRcut();
+
+        //=================
+        // PM part
+        //=================
+        this->pm.setDomainInfoParticleMesh(dinfo);
+        this->pm.setParticleParticleMesh(atom, true);   // clear previous charge information
+        this->pm.calcMeshForceOnly();
+        this->pm.writeBackForce(atom);
+
+        //=================
+        // PP part (without mask)
+        //=================
+        this->tree_inter.calcForceAll(FORCE::calcForceShort{},
+                                      atom,
+                                      dinfo,
+                                      true,
+                                      reuse_mode);
+        for(PS::S64 i=0; i<n_local; ++i){
+            const auto& result = tree_inter.getForce(i);
+                  auto& buf    = this->inter_force_buff.at(i);
+            buf.addFieldCoulomb( result.getFieldCoulomb() );
+            buf.addPotCoulomb(   result.getPotCoulomb()   );
+            buf.addForceLJ(      result.getForceLJ()      );
+            buf.addPotLJ(        result.getPotLJ()        );
+            buf.addVirialLJ(     result.getVirialLJ()     );
+        }
+        //=================
+        // PP part (evaluate mask)
+        //=================
+        FORCE::calcForceIntraMask(this->tree_inter,
+                                  atom,
+                                  this->inter_force_buff);
+
+        //=================
+        // PP part (writeback)
+        //=================
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
+        #endif
+        for(PS::S64 i=0; i<n_local; ++i){
+            const auto& buf = this->inter_force_buff[i];
+            atom[i].addFieldCoulomb( buf.getFieldCoulomb() );
+            atom[i].addPotCoulomb(   buf.getPotCoulomb()   );
+            atom[i].addForceLJ(      buf.getForceLJ()      );
+            atom[i].addPotLJ(        buf.getPotLJ()        );
+            atom[i].addVirialLJ(     buf.getVirialLJ()     );
+        }
+    }
+
+    /**
+    * @brief update force on atom (naive version).
+    */
+    template <class Tpsys, class Tdinfo>
+    void update_force_naive(      Tpsys                     &atom,
+                                  Tdinfo                    &dinfo,
+                            const PS::INTERACTION_LIST_MODE  reuse_mode = PS::MAKE_LIST){
+
+        this->update_inter_force_naive(atom, dinfo, reuse_mode);
+        this->update_intra_force(      atom, dinfo);
+    }
+
+    /**
+    * @brief update force on atom (optimized version).
+    */
+    template <class Tpsys, class Tdinfo>
+    void update_force(      Tpsys                     &atom,
+                            Tdinfo                    &dinfo,
+                      const PS::INTERACTION_LIST_MODE  reuse_mode = PS::MAKE_LIST){
+
+        this->update_inter_force(atom, dinfo, reuse_mode);
+        this->update_intra_force(atom, dinfo);
     }
 };

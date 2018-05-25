@@ -34,7 +34,8 @@ namespace COMM_TOOL {
     template <class T>
     void scatter(const std::vector<T> &send_vec,
                        T              &recv_data,
-                 const PS::S32         root      ){
+                 const PS::S32         root     ,
+                       MPI_Comm        comm = MPI_COMM_WORLD){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** scatter_<std::vector<T>>" << std::endl;
         #endif
@@ -44,8 +45,10 @@ namespace COMM_TOOL {
         assert(0 <= root && root < n_proc);
 
         #ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            MPI::COMM_WORLD.Scatter(&send_vec[0], 1, PS::GetDataType<T>(),
-                                    &recv_data  , 1, PS::GetDataType<T>(), root );
+            MPI_Scatter(&send_vec[0], 1, PS::GetDataType<T>(),
+                        &recv_data  , 1, PS::GetDataType<T>(),
+                         root,
+                         comm);
         #else
             recv_data = send_vec[0];
         #endif
@@ -61,7 +64,8 @@ namespace COMM_TOOL {
     template <class T>
     void scatter(const std::vector<std::vector<T>> &send_vec_vec,
                        std::vector<T>              &recv_vec,
-                 const PS::S32                      root         ){
+                 const PS::S32                      root,
+                       MPI_Comm                     comm = MPI_COMM_WORLD){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** scatter_<std::vector<std::vector<T>>>" << std::endl;
         #endif
@@ -87,8 +91,10 @@ namespace COMM_TOOL {
 
             serialize_vector_vector(send_vec_vec, send_data, n_send_disp);
 
-            MPI::COMM_WORLD.Scatterv(&send_data[0], &n_send[0], &n_send_disp[0], PS::GetDataType<T>(),
-                                     &recv_vec[0] ,  n_recv   ,                  PS::GetDataType<T>(), root);
+            MPI_Scatterv(&send_data[0], &n_send[0], &n_send_disp[0], PS::GetDataType<T>(),
+                         &recv_vec[0] ,  n_recv   ,                  PS::GetDataType<T>(),
+                          root,
+                          comm);
         #else
             recv_vec.resize(1);
             recv_vec[0] = send_vec_vec[0];
@@ -103,7 +109,8 @@ namespace COMM_TOOL {
     */
     void scatter(const std::vector<std::string> &send_vec_str,
                        std::string              &recv_str,
-                 const PS::S32                   root         ){
+                 const PS::S32                   root,
+                       MPI_Comm                  comm = MPI_COMM_WORLD){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** scatter_<std::vector<std::string>>>" << std::endl;
         #endif
@@ -120,7 +127,7 @@ namespace COMM_TOOL {
             serialize_string(send_vec_str[i], send_vec_vec_char[i]);
         }
 
-        scatter(send_vec_vec_char, recv_vec_char, root);
+        scatter(send_vec_vec_char, recv_vec_char, root, comm);
 
         deserialize_string(recv_vec_char, recv_str);
     }
@@ -133,7 +140,8 @@ namespace COMM_TOOL {
     */
     void scatter(const std::vector<std::vector<std::string>> &send_vec_vec_str,
                        std::vector<std::string>              &recv_vec_str,
-                 const PS::S32                                root             ){
+                 const PS::S32                                root,
+                       MPI_Comm                               comm = MPI_COMM_WORLD){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** scatter_<std::std::vector<vector<std::string>>>" << std::endl;
         #endif
@@ -150,7 +158,7 @@ namespace COMM_TOOL {
             serialize_vector_string(send_vec_vec_str[i], send_vec_vec_char[i]);
         }
 
-        scatter(send_vec_vec_char, recv_vec_char, root);
+        scatter(send_vec_vec_char, recv_vec_char, root, comm);
 
         deserialize_vector_string(recv_vec_char, recv_vec_str);
     }
@@ -168,7 +176,8 @@ namespace COMM_TOOL {
     template <class T>
     void scatter(const std::vector<std::vector<std::vector<T>>> &send_vec_vv,
                        std::vector<std::vector<T>>              &recv_vec_v,
-                 const PS::S32                                   root        ){
+                 const PS::S32                                   root,
+                       MPI_Comm                                  comm = MPI_COMM_WORLD){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** scatter_<std::vector<std::vector<std::vector<T>>>>" << std::endl;
         #endif
@@ -190,8 +199,8 @@ namespace COMM_TOOL {
         std::vector<T>      recv_data;
         std::vector<size_t> recv_index;
 
-        scatter(send_data,  recv_data , root);
-        scatter(send_index, recv_index, root);
+        scatter(send_data,  recv_data , root, comm);
+        scatter(send_index, recv_index, root, comm);
 
         deserialize_vector_vector(recv_data, recv_index,
                                   recv_vec_v            );
@@ -209,7 +218,8 @@ namespace COMM_TOOL {
     template <class Ta, class Tb>
     void scatter(const std::vector<std::vector<std::pair<Ta, Tb>>> &send_vec_vp,
                        std::vector<std::pair<Ta, Tb>>              &recv_vec_pair,
-                 const PS::S32                                      root          ){
+                 const PS::S32                                      root,
+                       MPI_Comm                                     comm = MPI_COMM_WORLD){
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** scatter_<std::vector<std::vector<std::pair<Ta, Tb>>>>" << std::endl;
         #endif
@@ -230,8 +240,8 @@ namespace COMM_TOOL {
 
         std::vector<Ta> recv_vec_1st;
         std::vector<Tb> recv_vec_2nd;
-        scatter(send_vec_1st, recv_vec_1st, root);
-        scatter(send_vec_2nd, recv_vec_2nd, root);
+        scatter(send_vec_1st, recv_vec_1st, root, comm);
+        scatter(send_vec_2nd, recv_vec_2nd, root, comm);
 
         combine_vector_pair(recv_vec_1st, recv_vec_2nd,
                             recv_vec_pair              );
@@ -247,9 +257,11 @@ namespace COMM_TOOL {
     * @detail    send/recv_vec[i] is send/recieve data to/from process i.
     */
     template <class T>
-    T scatter(const std::vector<T> &send_vec, const PS::S32 root){
+    T scatter(const std::vector<T> &send_vec,
+              const PS::S32         root,
+                    MPI_Comm        comm = MPI_COMM_WORLD){
         T recv_data;
-        scatter(send_vec, recv_data, root);
+        scatter(send_vec, recv_data, root, comm);
         return recv_data;
     }
 

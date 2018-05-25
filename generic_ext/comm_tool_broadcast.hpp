@@ -18,20 +18,6 @@
 #include "comm_tool_SerDes.hpp"
 
 
-//--- implementation in "ps_defs.hpp"
-//        ///////////////////////
-//        // MPI BCAST WRAPPER //
-//        // new functions 10 Feb 2015
-//        template<class T>
-//        static inline void broadcast(T * val, const int n, const int src=0){
-//#ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-//            MPI::COMM_WORLD.Bcast(val, n, GetDataType<T>(), src);
-//#else
-//            // NOP
-//#endif
-//        }
-
-
 namespace COMM_TOOL {
 
     //=====================
@@ -44,11 +30,15 @@ namespace COMM_TOOL {
     * @param[in] root ID of source process.
     */
     template <typename T>
-    void broadcast(T &v, const PS::S32 &root){
+    void broadcast(      T        &v,
+                   const PS::S32   root,
+                         MPI_Comm  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** bc_<T>" << std::endl;
         #endif
-        PS::Comm::broadcast(&v, 1, root);
+
+        MPI_Bcast(&v, 1, PS::GetDataType<T>(), root, comm);
     }
 
     /**
@@ -58,10 +48,14 @@ namespace COMM_TOOL {
     * @details adapting size of the vector between all process and broadcast.
     */
     template <typename T>
-    void broadcast(std::vector<T> &vec, const PS::S32 &root){
+    void broadcast(      std::vector<T> &vec,
+                   const PS::S32         root,
+                         MPI_Comm        comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_vec<T>  len=" << vec.size() << std::endl;
         #endif
+
         //--- pass vector length
         size_t size = vec.size();
         broadcast(size ,root);
@@ -73,7 +67,7 @@ namespace COMM_TOOL {
         if(size == 0) return;
 
         //--- transport vector
-        PS::Comm::broadcast(&vec[0], size, root);
+        MPI_Bcast(&vec[0], size, PS::GetDataType<T>(), root, comm);
     }
 
     /**
@@ -82,7 +76,10 @@ namespace COMM_TOOL {
     * @param[in] root ID of source process.
     * @details transcode std::string to std::vector<char> and call broadcast() for vector<T>.
     */
-    void broadcast(std::string &str, const PS::S32 &root){
+    void broadcast(      std::string &str,
+                   const PS::S32      root,
+                         MPI_Comm     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_string  len=" << vec_str.size() << std::endl;
         #endif
@@ -90,7 +87,7 @@ namespace COMM_TOOL {
         std::vector<char> char_buff;
         serialize_string(str, char_buff);
 
-        broadcast(char_buff, root);
+        broadcast(char_buff, root, comm);
 
         deserialize_string(char_buff, str);
     }
@@ -101,7 +98,10 @@ namespace COMM_TOOL {
     * @param[in] root ID of source process.
     * @details transcode std::vector<std::string> to std::vector<char> and call broadcast() for vector<T>.
     */
-    void broadcast(std::vector<std::string> &vec_str, const PS::S32 &root){
+    void broadcast(      std::vector<std::string> &vec_str,
+                   const PS::S32                   root,
+                         MPI_Comm                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_vec<string>  len=" << vec_str.size() << std::endl;
         #endif
@@ -109,7 +109,7 @@ namespace COMM_TOOL {
         std::vector<char> char_buff;
         serialize_vector_string(vec_str, char_buff);
 
-        broadcast(char_buff, root);
+        broadcast(char_buff, root, comm);
 
         deserialize_vector_string(char_buff, vec_str);
     }
@@ -123,7 +123,10 @@ namespace COMM_TOOL {
     * @details If 3 or more nested std::vector<...> is passed, this function will call itself recurcively.
     */
     template <typename T>
-    void broadcast(std::vector<std::vector<T>> &vec_vec, const PS::S32 &root){
+    void broadcast(      std::vector<std::vector<T>> &vec_vec,
+                   const PS::S32                      root,
+                         MPI_Comm                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root ) std::cout << " *** bc_vec_vec<T>  len=" << vec_vec.size() << std::endl;
         #endif
@@ -134,8 +137,8 @@ namespace COMM_TOOL {
         serialize_vector_vector(vec_vec,
                                 vec_data, vec_index);
 
-        broadcast(vec_data,  root);
-        broadcast(vec_index, root);
+        broadcast(vec_data,  root, comm);
+        broadcast(vec_index, root, comm);
 
         deserialize_vector_vector(vec_data, vec_index,
                                   vec_vec             );
@@ -149,10 +152,14 @@ namespace COMM_TOOL {
     * @details class Ta and Tb accept std::vector<>, std::string, or user-defined class WITHOUT pointer member.
     */
     template <typename Ta, typename Tb>
-    void broadcast(std::vector<std::pair<Ta, Tb>> &vec_pair, const PS::S32 &root){
+    void broadcast(      std::vector<std::pair<Ta, Tb>> &vec_pair,
+                   const PS::S32                         root,
+                         MPI_Comm                        comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_vec<pair<Ta, Tb>  len=" << vec_pair.size() << std::endl;
         #endif
+
         //--- devide first and second
         std::vector<Ta> vec_1st;
         std::vector<Tb> vec_2nd;
@@ -160,8 +167,8 @@ namespace COMM_TOOL {
         split_vector_pair(vec_pair,
                           vec_1st, vec_2nd);
 
-        broadcast(vec_1st, root);
-        broadcast(vec_2nd, root);
+        broadcast(vec_1st, root, comm);
+        broadcast(vec_2nd, root, comm);
 
         combine_vector_pair(vec_1st, vec_2nd,
                             vec_pair        );
@@ -175,10 +182,14 @@ namespace COMM_TOOL {
     * @details value of class Tc accepts std::vector<>, std::string, or user-defined class WITHOUT pointer member.
     */
     template<typename Tc, typename Telem>
-    void broadcast_insert_container(Tc &c, const PS::S32 &root){
+    void broadcast_insert_container(      Tc      &c,
+                                    const PS::S32  root,
+                                          MPI_Comm comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_insert<T>  len=" << c.size() << std::endl;
         #endif
+
         //--- buffer in std::vector
         std::vector<Telem> buff;
         buff.reserve(c.size());
@@ -187,7 +198,7 @@ namespace COMM_TOOL {
         }
 
         //--- broadcast buffer
-        broadcast(buff, root);
+        broadcast(buff, root, comm);
 
         //--- load from buffer
         c.clear();
@@ -198,24 +209,32 @@ namespace COMM_TOOL {
 
     //! @brief wrapper for std::unordered_map<>
     template <class Key, class T, class Hash, class Pred, class Allocator>
-    void broadcast(std::unordered_map<Key, T, Hash, Pred, Allocator> &map, const PS::S32 &root){
+    void broadcast(      std::unordered_map<Key, T, Hash, Pred, Allocator> &map,
+                   const PS::S32                                            root,
+                         MPI_Comm                                           comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_unordered_map<T>  len=" << map.size() << std::endl;
         #endif
+
         broadcast_insert_container<std::unordered_map<Key, T, Hash, Pred, Allocator>,
                                    std::pair<Key, T>
-                                   >(map, root);
+                                   >(map, root, comm);
     }
 
     //! @brief wrapper for std::unordered_multimap<>
     template <class Key, class T, class Hash, class Pred, class Allocator>
-    void broadcast(std::unordered_multimap<Key, T, Hash, Pred, Allocator> &map, const PS::S32 &root){
+    void broadcast(      std::unordered_multimap<Key, T, Hash, Pred, Allocator> &map,
+                   const PS::S32                                                 root,
+                         MPI_Comm                                                comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == root )  std::cout << " *** bc_unordered_multimap<T>  len=" << map.size() << std::endl;
         #endif
+        
         broadcast_insert_container<std::unordered_multimap<Key, T, Hash, Pred, Allocator>,
                                    std::pair<Key, T>
-                                   >(map, root);
+                                   >(map, root, comm);
     }
 
 }

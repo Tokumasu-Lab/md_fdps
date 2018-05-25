@@ -143,7 +143,8 @@ void SetUp_atom_data(PS::DomainInfo              &dinfo,
     force.init(n_total);
 
     force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
-    force.update_force(atom, dinfo);
+    //force.update_force_naive(atom, dinfo, PS::MAKE_LIST);
+    force.update_force(atom, dinfo, PS::MAKE_LIST);
 
     //--- apply force integrator
     while( System::isLoopContinue() ){
@@ -158,13 +159,15 @@ void SetUp_atom_data(PS::DomainInfo              &dinfo,
 
         ext_sys_controller.kick(0.5*System::get_dt(), atom);
         ext_sys_controller.drift(System::get_dt(), atom);
+        atom.adjustPositionIntoRootDomain(dinfo);
 
         dinfo.decomposeDomainAll(atom);
         atom.exchangeParticle(dinfo);
         force.update_intra_pair_list(atom, dinfo, MODEL::coef_table.mask_scaling);
 
         //--- calculate intermolecular force in FDPS
-        force.update_force(atom, dinfo);
+        //force.update_force_naive(atom, dinfo, PS::MAKE_LIST);
+        force.update_force(atom, dinfo, PS::MAKE_LIST);
 
         ext_sys_controller.kick(0.5*System::get_dt(), atom);
 

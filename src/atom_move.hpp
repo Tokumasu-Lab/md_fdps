@@ -9,30 +9,137 @@
 #include <particle_simulator.hpp>
 #include <molecular_dynamics_ext.hpp>
 
+
+enum class RESPA_MODE {
+    all,
+    intra,
+    inter,
+};
+
+namespace ENUM {
+    static const std::map<std::string, RESPA_MODE> table_str_RESPA_MODE{
+        {"all"  , RESPA_MODE::all  },
+        {"intra", RESPA_MODE::intra},
+        {"inter", RESPA_MODE::inter},
+    };
+    static const std::map<RESPA_MODE, std::string> table_RESPA_MODE_str{
+        {RESPA_MODE::all  , "all"  },
+        {RESPA_MODE::intra, "intra"},
+        {RESPA_MODE::inter, "inter"},
+    };
+
+    RESPA_MODE which_RESPA_MODE(const std::string &str){
+        if(table_str_RESPA_MODE.find(str) != table_str_RESPA_MODE.end()){
+            return table_str_RESPA_MODE.at(str);
+        } else {
+            std::cerr << "  RESPA_MODE: input = " << str << std::endl;
+            throw std::out_of_range("undefined enum value in RESPA_MODE.");
+        }
+    }
+    std::string what(const RESPA_MODE &e){
+        if(table_RESPA_MODE_str.find(e) != table_RESPA_MODE_str.end()){
+            return table_RESPA_MODE_str.at(e);
+        } else {
+            using type_base = typename std::underlying_type<RESPA_MODE>::type;
+            std::cerr << "  RESPA_MODE: input = " << static_cast<type_base>(e) << std::endl;
+            throw std::out_of_range("undefined enum value in RESPA_MODE.");
+        }
+    }
+}
+
+namespace std {
+    inline string to_string(const RESPA_MODE &e){ return ENUM::what(e); }
+}
+inline std::ostream& operator << (std::ostream& s, const RESPA_MODE &e){
+    s << ENUM::what(e);
+    return s;
+}
+
+
 namespace ATOM_MOVE {
 
+    namespace _Impl{
+
+        template <class FGetForce, class Tpsys>
+        void kick_atom(const PS::F64    &dt,
+                             Tpsys      &psys,
+                             PS::F64vec &v_barycentric){
+
+            const PS::S64 n_local = psys.getNumberOfParticleLocal();
+
+                    v_barycentric = 0.0;
+            PS::F64 mass_total    = 0.0;
+
+            #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+                #pragma omp parallel for reduction(+: v_baricentric, mass_total)
+            #endif
+            for(PS::S64 i=0; i<n_local; ++i){
+                const PS::F64vec acc   = FGetForce()(psys[i])*( dt/psys[i].getMass() );
+                const PS::F64vec v_new = acc + psys[i].getVel();
+                psys[i].setVel(v_new);
+
+                v_barycentric += psys[i].getMass()*v_new;
+                mass_total    += psys[i].getMass();
+            }
+
+            mass_total    = PS::Comm::getSum(mass_total);
+            v_barycentric = PS::Comm::getSum(v_barycentric);
+            v_barycentric = v_barycentric*(1.0/mass_total);
+        }
+    }
+
+    struct GetForceInter {
+        template <class Tptcl>
+        decltype(declval<Tptcl>().getForceInter()) operator () (const Tptcl &ptcl) const {
+            return ptcl.getForceInter();
+        }
+    };
+
+    struct GetForceIntra {
+        template <class Tptcl>
+        decltype(declval<Tptcl>().getForceIntra()) operator () (const Tptcl &ptcl) const {
+            return ptcl.getForceIntra();
+        }
+    };
+
+    struct GetForceTotal {
+        template <class Tptcl>
+        decltype(declval<Tptcl>().getForce()) operator () (const Tptcl &ptcl) const {
+            return ptcl.getForce();
+        }
+    };
+
     template <class Tpsys>
-    void kick(const PS::F64 &dt,
-                    Tpsys   &psys){
+    void kick(const PS::F64    &dt,
+                    Tpsys      &psys,
+              const RESPA_MODE  respa_mode = RESPA_MODE::all){
 
         //--- kick atom
         const PS::S64 n_local = psys.getNumberOfParticleLocal();
 
         PS::F64vec v_barycentric = 0.0;
-        PS::F64    mass_total    = 0.0;
-        for(PS::S64 i=0; i<n_local; ++i){
-            PS::F64vec v_new = psys[i].getVel()
-                             + psys[i].getForce()*( dt/psys[i].getMass() );
-            psys[i].setVel(v_new);
 
-            v_barycentric += psys[i].getMass()*v_new;
-            mass_total    += psys[i].getMass();
+        switch(respa_mode){
+            case RESPA_MODE::all:
+                _Impl::kick_atom<GetForceTotal>(dt, psys, v_barycentric);
+            break;
+
+            case RESPA_MODE::intra:
+                _Impl::kick_atom<GetForceIntra>(dt, psys, v_barycentric);
+            break;
+
+            case RESPA_MODE::inter:
+                _Impl::kick_atom<GetForceInter>(dt, psys, v_barycentric);
+            break;
+
+            default:
+                throw std::invalid_argument("undefined RESPA_MODE: " + ENUM::what(respa_mode));
         }
 
         //--- cancel barycentric velocity
-        mass_total    = PS::Comm::getSum(mass_total);
-        v_barycentric = PS::Comm::getSum(v_barycentric);
-        v_barycentric = v_barycentric*(1.0/mass_total);
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
+        #endif
         for(PS::S64 i=0; i<n_local; ++i){
             psys[i].setVel( psys[i].getVel() - v_barycentric );
         }

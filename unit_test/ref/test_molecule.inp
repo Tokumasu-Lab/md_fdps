@@ -22,7 +22,7 @@ AA_Ar               8
 //      x, y, z [angstrom]   must be  x=y=z (restricted by PS::ParticleMesh)
 //=====================================================================
 @<CONDITION>BOX
-60  60  60
+80  80  80
 
 //=====================================================================
 //  setting of initializer:

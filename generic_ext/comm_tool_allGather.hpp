@@ -18,36 +18,6 @@
 #include "comm_tool_SerDes.hpp"
 
 
-//--- implementation in "ps_defs.hpp"
-//        ///////////////////////////
-//        // MPI ALLGATHER WRAPPER //
-//        template<class T> static inline void allGather(const T * val_send,
-//                                                       const int n,
-//                                                       T * val_recv){
-//#ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-//            MPI::COMM_WORLD.Allgather(val_send, n, GetDataType<T>(),
-//                                      val_recv, n, GetDataType<T>());
-//#else
-//            for(int i=0; i<n; i++)val_recv[i] = val_send[i];
-//#endif
-//        }
-//
-//        template<class T> static inline void allGatherV(const T * val_send,
-//                                                        const int n_send,
-//                                                        T * val_recv,
-//                                                        int * n_recv,
-//                                                        int * n_recv_disp){
-//#ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-//            MPI::COMM_WORLD.Allgatherv(val_send, n_send, GetDataType<T>(),
-//                                       val_recv, n_recv, n_recv_disp, GetDataType<T>());
-//#else
-//            for(int i=0; i<n_send; i++) val_recv[i] = val_send[i];
-//            n_recv[0] = n_recv_disp[1] = n_send;
-//            n_recv_disp[0] = 0;
-//#endif
-//        }
-
-
 namespace COMM_TOOL {
 
     //=====================
@@ -61,7 +31,9 @@ namespace COMM_TOOL {
     */
     template <class T>
     void allGather(const T              &value,
-                         std::vector<T> &recv_vec){
+                         std::vector<T> &recv_vec,
+                         MPI_Comm        comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<T, result>" << std::endl;
         #endif
@@ -69,7 +41,9 @@ namespace COMM_TOOL {
         recv_vec.clear();
         recv_vec.resize(PS::Comm::getNumberOfProc());
 
-        PS::Comm::allGather(&value, 1, &recv_vec[0]);
+        MPI_Allgather(&value      , 1, PS::GetDataType<T>(),
+                      &recv_vec[0], 1, PS::GetDataType<T>(),
+                       comm);
     }
 
     /**
@@ -79,7 +53,9 @@ namespace COMM_TOOL {
     */
     template <class T>
     void allGather(const std::vector<T>              &send_vec,
-                         std::vector<std::vector<T>> &recv_vec_vec){
+                         std::vector<std::vector<T>> &recv_vec_vec,
+                         MPI_Comm                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::vector<T>, result>" << std::endl;
         #endif
@@ -90,7 +66,7 @@ namespace COMM_TOOL {
         std::vector<PS::S32> n_recv_disp;
         std::vector<T>       recv_data;
         PS::S32              len = send_vec.size();
-        allGather(len, n_recv);
+        allGather(len, n_recv, comm);
 
         n_recv_disp.resize(n_proc+1);
         n_recv_disp[0] = 0;
@@ -99,8 +75,9 @@ namespace COMM_TOOL {
         }
         recv_data.resize( n_recv_disp[n_proc] );
 
-        PS::Comm::allGatherV(&send_vec[0], send_vec.size(),
-                             &recv_data[0], &n_recv[0], &n_recv_disp[0]);
+        MPI_Allgatherv(&send_vec[0] , send_vec.size(),             PS::GetDataType<T>(),
+                       &recv_data[0], &n_recv[0], &n_recv_disp[0], PS::GetDataType<T>(),
+                        comm);
 
         recv_vec_vec.resize(n_proc);
         for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
@@ -122,7 +99,9 @@ namespace COMM_TOOL {
     * @param[out] recv_vec_str recieve result.
     */
     void allGather(const std::string              &send_str,
-                         std::vector<std::string> &recv_vec_str){
+                         std::vector<std::string> &recv_vec_str,
+                         MPI_Comm                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::string>, result>" << std::endl;
         #endif
@@ -133,7 +112,7 @@ namespace COMM_TOOL {
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         serialize_string(send_str, send_vec_char);
-        allGather(send_vec_char, recv_vec_vec_char);
+        allGather(send_vec_char, recv_vec_vec_char, comm);
 
         recv_vec_str.resize(n_proc);
         for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
@@ -148,7 +127,9 @@ namespace COMM_TOOL {
     * @param[out] recv_vec_vec_str recieve result.
     */
     void allGather(const std::vector<std::string>              &send_vec_str,
-                         std::vector<std::vector<std::string>> &recv_vec_vec_str){
+                         std::vector<std::vector<std::string>> &recv_vec_vec_str,
+                         MPI_Comm                               comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::vector<std::string>, result>" << std::endl;
         #endif
@@ -159,7 +140,7 @@ namespace COMM_TOOL {
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         serialize_vector_string(send_vec_str, send_vec_char);
-        allGather(send_vec_char, recv_vec_vec_char);
+        allGather(send_vec_char, recv_vec_vec_char, comm);
 
         recv_vec_vec_str.resize(n_proc);
         for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
@@ -178,7 +159,9 @@ namespace COMM_TOOL {
     */
     template <class T>
     void allGather(const std::vector<std::vector<T>>              &send_vec_vec,
-                         std::vector<std::vector<std::vector<T>>> &recv_vec_vec_vec){
+                         std::vector<std::vector<std::vector<T>>> &recv_vec_vec_vec,
+                         MPI_Comm                                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::vector<std::vector<T>>, result>" << std::endl;
         #endif
@@ -193,8 +176,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<T>>      recv_data;
         std::vector<std::vector<size_t>> recv_index;
-        allGather(vec_data,  recv_data);
-        allGather(vec_index, recv_index);
+        allGather(vec_data,  recv_data , comm);
+        allGather(vec_index, recv_index, comm);
 
         recv_vec_vec_vec.resize(n_proc);
         for(PS::S32 i_proc=0; i_proc<n_proc; ++i_proc){
@@ -212,7 +195,9 @@ namespace COMM_TOOL {
     */
     template <class Ta, class Tb>
     void allGather(const std::vector<std::pair<Ta, Tb>>              &send_vec_pair,
-                         std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vec_pair){
+                         std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vec_pair,
+                         MPI_Comm                                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allGather_<std::vector<std::pair<Ta, Tb>>, result>" << std::endl;
         #endif
@@ -227,8 +212,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<Ta>> recv_vec_1st;
         std::vector<std::vector<Tb>> recv_vec_2nd;
-        allGather(vec_1st, recv_vec_1st);
-        allGather(vec_2nd, recv_vec_2nd);
+        allGather(vec_1st, recv_vec_1st, comm);
+        allGather(vec_2nd, recv_vec_2nd, comm);
 
         recv_vec_vec_pair.resize(n_proc);
         for(PS::S32 i=0; i<n_proc; ++i){
@@ -246,9 +231,11 @@ namespace COMM_TOOL {
     * @detail    recv_vec.size() = PS::Comm::getNumberOfProc();
     */
     template <typename T>
-    std::vector<T> allGather(const T &send_data){
+    std::vector<T> allGather(const T        &send_data,
+                                   MPI_Comm  comm = MPI_COMM_WORLD){
+
         std::vector<T> recv_vec;
-        allGather(send_data, recv_vec);
+        allGather(send_data, recv_vec, comm);
         return recv_vec;
     }
 

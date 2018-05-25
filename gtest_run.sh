@@ -65,13 +65,15 @@ ${EXE_DIR}/gtest_logspace_array
 #--- IntraPair::
 mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_intra_pair
 
-#--- force test
-mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_LJ
-mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_coulomb
-mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_bond
-mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_angle
-mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_dihedral
-mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_improper
+#--- force test (fixed MPI process because there are few particle only)
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_LJ
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_coulomb
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_bond
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_angle
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_dihedral
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_improper
+
+mpirun -np 2 -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_force_mask
 
 #--- file I/O test
 mpirun -np ${MPI_NUM} -x OMP_NUM_THREADS=${OMP_NUM} ${EXE_DIR}/gtest_fileIO

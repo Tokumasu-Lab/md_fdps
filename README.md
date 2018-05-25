@@ -1,16 +1,28 @@
 # md_fdps
 
+大規模N体シミュレーションフレームワーク[FDPS](https://github.com/FDPS/FDPS)を利用した汎用の分子動力学シミュレータ実装  
 
-大規模N体シミュレーションフレームワーク[FDPS](https://github.com/FDPS/FDPS)を利用した汎用の分子動力学シミュレータ実装
+### 概要
+基本的な分子動力学解析の流れ：  
+
+ - 分子モデルの読み込み  
+ - 初期構造の作成  
+ - シミュレーションの実行  
+ - 出力結果の解析
+
+までの一通りの処理を実行可能なシンプルなシステムを提供する．
+
+そのままでも利用は可能だが，ユーザがオリジナルの相互作用や解析処理を追加することで，  
+少ない手間で高度に並列化された新規の分子動力学シミュレータを構築する基盤として用いることを想定している．
 
 ### 動作環境
 **C++11規格を使用**
 
 開発に使用している環境は
-  - FDPS 4.0b 現状(2018/5/2)は[改造版を使用](https://github.com/kawai125/FDPS/tree/feature_no_auto_PeridicAdjust)．同様の機能の修正は本家の時期バージョンアップでなされるそうです．
+  - FDPS 4.0c
   - GCC 6.3.0
-  - OpenMPI 2.1.1
-  - FFTw 3.3.6  
+  - OpenMPI 2.1.2
+  - FFTw 3.3.7  
 
 である．
 
@@ -52,7 +64,7 @@ $ mpirun -np [n_proc] ./md_fdps.x
 コンパイルオプションに `-DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp` を追加する．  
 (先述の通り，MPIは必須)
 
-OpenMPI-2.1.1 + OpenMP のHybrid並列化で，Xeon E5-2690v3 (12core) を 2CPU のノード4台 (合計8CPU) で各CPUにMPIプロセスを1つ配置し，CPU内部ではOpenMP並列化 (各12スレッド) をおこなう場合の実行コマンドは下記のようになる．
+OpenMPI-2.1.2 + OpenMP のHybrid並列化で，Xeon E5-2690v3 (12core) を 2CPU のノード4台 (合計8CPU) で各CPUにMPIプロセスを1つ配置し，CPU内部ではOpenMP並列化 (各12スレッド) をおこなう場合の実行コマンドは下記のようになる．
 ```
 $ mpirun -np 8 --bind-to socket -npersocket 1 -x OMP_NUM_THREADS=12 md_fdps.x
 ```
@@ -145,9 +157,14 @@ $ make test_param
 ここで， `[model_name]` は `***.mol2` , `***.param` ファイルの拡張子を除いたファイル名の部分で，両方のパラメータファイルがセットになっている必要がある．
 
 ### 機能実験用の定義済マクロ
-- REUSE_INTERACTION_LIST
-  - FDPSの相互作用リストと分子内ペアリストを毎ステップ作り直さずに cycle_dinfo 回使いまわす．  
-    現状の PS::ParticleMesh の仕様の制限から通信量が増加する．
+
+| マクロ | 効果 |
+|:-------|:-----|
+| REUSE_INTERACTION_LIST | FDPSの相互作用リストと分子内ペアリストを毎ステップ作り直さずに cycle_dinfo 回使いまわす．現状の PS::ParticleMesh の仕様の制限から通信量が増加する．__動作検証中__  |
+| FORCE_NAIVE_IMPL | 分子内マスクを短距離相互作用カーネル内で直接評価する．桁落ちの心配はなくなるが性能が低下する．(デバッグ用) |
+| CHECK_FORCE_STRENGTH | 時間積分が明らかに破綻するような巨大な力が働いた粒子を検知しレポートする．(デバッグ用) |
+| DEBUG_COMM_TOOL | std::vector や std::pair の入れ子など，複雑な形状のデータを COMM_TOOL の集団通信に渡した際に再帰呼び出しが正しいか確認するための情報を出力する．(デバッグ用) |
+
 
 ### Contact
 東北大学　流体科学研究所  

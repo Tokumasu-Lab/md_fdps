@@ -50,7 +50,6 @@ namespace COMM_TOOL {
                                    const std::vector<Tindex>             &vec_index,
                                          std::vector<std::vector<Tdata>> &vec_vec){
 
-        vec_vec.clear();
         vec_vec.resize(vec_index.size()-1);
 
         for(size_t i=0; i<vec_index.size()-1; ++i){
@@ -154,5 +153,13 @@ namespace COMM_TOOL {
             str.push_back(c);
         }
     }
+
+
+    // support for the case of without MPI library
+    #ifndef PARTICLE_SIMULATOR_MPI_PARALLEL
+        using MPI_Comm = PS::S32;
+
+        const MPI_Comm MPI_COMM_WORLD = 0;
+    #endif
 
 }

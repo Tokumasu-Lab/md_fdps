@@ -52,7 +52,9 @@ void write_log_file(const std::string &file_name,
 
     if(PS::Comm::getRank() != 0){
         std::ofstream file{file_name};
-        if(!file.is_open()) PS::Abort();
+        if(!file.is_open()){
+            throw std::ios_base::failure("failed to open the file: " + file_name);
+        }
 
         for(const auto& data : data_list){
             file << data;
@@ -65,12 +67,6 @@ template <class Tlog>
 void load_log_file(const std::string &file_name,
                          Tlog        &data_list){
     data_list.clear();
-
-    try{
-        FS_TOOL::file_load(file_name, data_list, 0);
-    }
-    catch(...){
-        PS::Abort();
-    }
+    FS_TOOL::file_load(file_name, data_list, 0);
     COMM_TOOL::broadcast(data_list, 0);
 }

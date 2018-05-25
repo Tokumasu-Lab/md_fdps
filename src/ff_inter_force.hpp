@@ -15,95 +15,140 @@
 
 namespace FORCE {
 
-    //--- Template function calculate Particle-Particle interaction
-    template <class Tforce, class Tepi, class Tepj>
-    void calcForceShort_IA(const Tepi    &ep_i,
-                           const Tepj    *ep_j,
-                           const PS::S32 &n_ep_j,
-                           const PS::F64 &r2_cut_LJ,
-                           const PS::F64 &r2_cut_coulomb,
-                           const PS::F64 &r_cut_coulomb_inv,
-                                 Tforce  &force_IA){
+    /*
+    *  @breif naive implementation: intramolecular mask is considered in this function.
+    */
+    struct calcForceShort_naive{
+        template <class Tepi, class Tepj, class Tforce>
+        void operator () (const Tepi    *ep_i,
+                          const PS::S32  n_ep_i,
+                          const Tepj    *ep_j,
+                          const PS::S32  n_ep_j,
+                                Tforce  *force){
 
-        for(PS::S32 j=0; j<n_ep_j; ++j){
-            //--- skip same atom
-            if(ep_i.getAtomID() == ep_j[j].getAtomID() ) continue;
+            const PS::F64 r_cut_LJ          = Normalize::realCutOff( Tepi::getRcut_LJ() );
+            const PS::F64 r2_cut_LJ         = r_cut_LJ*r_cut_LJ;
+            const PS::F64 r_cut_coulomb     = Normalize::realCutOff( Tepi::getRcut_coulomb() );
+            const PS::F64 r_cut_coulomb_inv = 1.0/r_cut_coulomb;
+            const PS::F64 r2_cut_coulomb    = r_cut_coulomb*r_cut_coulomb;
 
-            auto mask = ep_i.find_mask( ep_j[j].getAtomID() );
+            for(PS::S32 i=0; i<n_ep_i; ++i){
+                Tforce force_IA;
+                force_IA.clear();
+                for(PS::S32 j=0; j<n_ep_j; ++j){
+                    Tforce force_ij;
+                    force_ij.clear();
+                    calcForceShort_IJ_coulombSP_LJ12_6(ep_i[i],
+                                                       ep_j[j],
+                                                       r2_cut_LJ,
+                                                       r2_cut_coulomb,
+                                                       r_cut_coulomb_inv,
+                                                       force_ij);
+                    const auto mask = ep_i[i].find_mask( ep_j[j].getAtomID() );
+                    if( mask.is_effective() ){
+                        calcForceMask_IJ_coulombSP_LJ12_6(ep_i[i],
+                                                          ep_j[j],
+                                                          mask,
+                                                          force_ij);
+                    }
+                    force_IA.addPotLJ(       force_ij.getPotLJ()       );
+                    force_IA.addForceLJ(     force_ij.getForceLJ()     );
+                    force_IA.addVirialLJ(    force_ij.getVirialLJ()    );
+                    force_IA.addPotCoulomb(  force_ij.getPotCoulomb()  );
+                    force_IA.addFieldCoulomb(force_ij.getFieldCoulomb());
+                }
+                force[i].copyFromForce(force_IA);
 
-            //--- intermolecular interaction
-            PS::F64vec r_ij = ep_i.getPos() - ep_j[j].getPos();
-                       r_ij = Normalize::realPos(r_ij);
-            PS::F64    r2   = r_ij*r_ij;
-
-            PS::F64 r2_inv = 1.0/r2;
-            PS::F64 r_inv  = sqrt(r2_inv);
-
-            //--- factor for ParticleMesh
-            PS::F64 r_scale = 2.0*(r2*r_inv)*r_cut_coulomb_inv;
-            PS::F64 factor_PM_pot   = S2_pcut(r_scale);
-            PS::F64 factor_PM_force = S2_fcut(r_scale);
-
-            //------ PP part: factor*mask
-            //------ PM part: (1.0 - factor)*(1.0 - mask)
-            factor_PM_pot   = factor_PM_pot*mask.scale_coulomb
-                            + (1.0 - factor_PM_pot)*(1.0 - mask.scale_coulomb);
-            factor_PM_force = factor_PM_force*mask.scale_coulomb
-                            + (1.0 - factor_PM_force)*(1.0 - mask.scale_coulomb);
-
-            //------ cut off radius
-            if( r2 > r2_cut_LJ      ) mask.scale_LJ      = 0.0;
-            if( r2 > r2_cut_coulomb ){
-                factor_PM_pot   = 0.0;
-                factor_PM_force = 0.0;
-            };
-
-            //--- VDW part
-            PS::F64 vddm = ep_i.getVDW_D()*ep_j[j].getVDW_D();      // VDW_D values are pre-affected "sqrt"
-            PS::F64 vdrm = ep_i.getVDW_R() + ep_j[j].getVDW_R();    // VDW_R values are pre-affected "0.5*"
-            PS::F64 sbr6 = vdrm*vdrm*r2_inv;
-                    sbr6 = sbr6*sbr6*sbr6;                          // coef*(r0/r)^6
-
-                    vddm = mask.scale_LJ*vddm;                      // affect scaling mask
-
-            PS::F64    pot_ij =   0.5*vddm*sbr6*(sbr6-2.0);         // 0.5* for double count
-            PS::F64vec f_ij   = (12.0*vddm*sbr6*(sbr6-1.0)*r2_inv)*r_ij;
-            force_IA.addPotLJ(    pot_ij );
-            force_IA.addForceLJ(  f_ij   );
-            force_IA.addVirialLJ( calcVirialEPI(r_ij, f_ij) );
-
-            //--- coulomb part
-            pot_ij =   factor_PM_pot  *ep_j[j].getCharge()*r_inv;
-            f_ij   = ( factor_PM_force*ep_j[j].getCharge()*r2_inv )*r_ij;
-            force_IA.addPotCoulomb(   pot_ij );
-            force_IA.addFieldCoulomb( f_ij   );
+                //--- self consistant term for PM
+                force[i].addPotCoulomb( -ep_i[i].getCharge()*(208.0/70.0)*r_cut_coulomb_inv );
+            }
         }
+    };
 
-        //--- self consistant term
-        force_IA.addPotCoulomb( -ep_i.getCharge()*(208.0/70.0)*r_cut_coulomb_inv );
-    }
+    /*
+    *  @breif optimized implementation: intramolecular mask is ignored in this function.
+    *         when use this function, must consider mask by the function of "calcForceIntraMask()" in below.
+    */
+    struct calcForceShort{
+        template <class Tepi, class Tepj, class Tforce>
+        void operator () (const Tepi    *ep_i,
+                          const PS::S32  n_ep_i,
+                          const Tepj    *ep_j,
+                          const PS::S32  n_ep_j,
+                                Tforce  *force){
 
-    template<class Tforce, class Tepi, class Tepj>
-    void calcForceShort(      Tepi    *ep_i,
-                        const PS::S32  n_ep_i,
-                              Tepj    *ep_j,
-                        const PS::S32  n_ep_j,
-                              Tforce  *force){
+            const PS::F64 r_cut_LJ          = Normalize::realCutOff( Tepi::getRcut_LJ() );
+            const PS::F64 r2_cut_LJ         = r_cut_LJ*r_cut_LJ;
+            const PS::F64 r_cut_coulomb     = Normalize::realCutOff( Tepi::getRcut_coulomb() );
+            const PS::F64 r_cut_coulomb_inv = 1.0/r_cut_coulomb;
+            const PS::F64 r2_cut_coulomb    = r_cut_coulomb*r_cut_coulomb;
 
-        PS::F64 r2_cut_LJ         = Normalize::realCutOff( ep_i->getRcut_LJ() );
-                r2_cut_LJ         = r2_cut_LJ*r2_cut_LJ;
-        PS::F64 r2_cut_coulomb    = Normalize::realCutOff( ep_i->getRcut_coulomb() );
-        PS::F64 r_cut_inv_coulomb = 1.0/r2_cut_coulomb;
-                r2_cut_coulomb    = r2_cut_coulomb*r2_cut_coulomb;
+            for(PS::S32 i=0; i<n_ep_i; ++i){
+                Tforce force_IA;
+                force_IA.clear();
+                for(PS::S32 j=0; j<n_ep_j; ++j){
+                    calcForceShort_IJ_coulombSP_LJ12_6(ep_i[i],
+                                                       ep_j[j],
+                                                       r2_cut_LJ,
+                                                       r2_cut_coulomb,
+                                                       r_cut_coulomb_inv,
+                                                       force_IA);
+                }
+                force[i].copyFromForce(force_IA);
 
-        for(PS::S32 i=0; i<n_ep_i; ++i){
-            calcForceShort_IA(ep_i[i],
-                              ep_j,
-                              n_ep_j,
-                              r2_cut_LJ,
-                              r2_cut_coulomb,
-                              r_cut_inv_coulomb,
-                              force[i]  );
+                //--- self consistant term for PM
+                force[i].addPotCoulomb( -ep_i[i].getCharge()*(208.0/70.0)*r_cut_coulomb_inv );
+            }
+        }
+    };
+
+
+    /*
+    *  @breif fuction for intramolecular mask evaluation.
+    *         use with the 'calcForceShort()' functor.
+    */
+    template <class TSM, class Tforce, class Tepi, class Tepj, class Tmomloc, class Tmomglb, class Tspj,
+              class Tpsys>
+    void calcForceIntraMask(PS::TreeForForce<TSM,
+                                             Tforce,
+                                             Tepi,
+                                             Tepj,
+                                             Tmomloc,
+                                             Tmomglb,
+                                             Tspj    > &tree,
+                            Tpsys                      &atom,
+                            std::vector<Tforce>        &pp_force_buff){
+
+        const PS::S64 n_local = atom.getNumberOfParticleLocal();
+
+        assert(static_cast<PS::S64>(pp_force_buff.size()) == n_local );
+
+        //--- calculate intramolecular force
+        #ifdef PARTICLE_SIMULATOR_THREAD_PARALLEL
+            #pragma omp parallel for
+        #endif
+        for(PS::S64 i=0; i<n_local; ++i){
+            const auto& fp_i = atom[i];
+
+            Tforce force_IA;
+            force_IA.clear();
+
+            for(const auto& mask : fp_i.mask_list()){
+                const auto* ptr_j = tree.getEpjFromId( mask.getId() );
+                IntraPair::check_nullptr_ptcl(ptr_j, fp_i.getAtomID(), mask.getId() );
+
+                //--- evaluate mask
+                calcForceMask_IJ_coulombSP_LJ12_6(fp_i,
+                                                  *ptr_j,
+                                                  mask,
+                                                  force_IA);
+            }
+            
+            pp_force_buff[i].addPotLJ(        force_IA.getPotLJ()        );
+            pp_force_buff[i].addForceLJ(      force_IA.getForceLJ()      );
+            pp_force_buff[i].addVirialLJ(     force_IA.getVirialLJ()     );
+            pp_force_buff[i].addPotCoulomb(   force_IA.getPotCoulomb()   );
+            pp_force_buff[i].addFieldCoulomb( force_IA.getFieldCoulomb() );
         }
     }
 

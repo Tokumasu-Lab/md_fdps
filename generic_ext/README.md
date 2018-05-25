@@ -7,26 +7,26 @@
 このフォルダの `molecular_dynamics_ext.hpp` をインクルードする．
 
 #### VEC_EXT
-FDPSに付属する PS::Vector3<> の拡張．  
+FDPSに付属する PS::Vector3\<T\> の拡張．  
 `dot(v1, v2)` : 内積の別名  
 `cross(v1, v2)` : 外積の別名  
 `rot_x(v, f)`, `rot_y(v, f)`, `rot_z(v, f)` : X, Y, Z各軸周りの回転(ラジアン)  
 を追加する．
 
-#### MD_EXT::fixed_vector
-std::vector<T> と同様のインターフェイスで使えるようにラップした std::array<T,S>.  
+#### MD_EXT::fixed_vector\<T, S\>
+std::vector\<T\> と同様のインターフェイスで使えるようにラップした std::array\<T,S\>.  
 定義時に指定したサイズまでしか伸長できないがFullParticleなどのMPI通信でやり取りされるデータクラス内にそのまま定義できる．
 詳細な挙動は `./unit_test/gtest_fixed_vector.cpp` を参照．
 
 [boost.Container](http://www.boost.org/doc/libs/1_66_0/doc/html/container.html) が利用可能なら `boost::container::static_vector` の利用を推奨．
 
-#### MD_EXT::logspace_array
+#### MD_EXT::logspace_array\<T\>
 対数軸上で等間隔な集計を行うための配列．  
 実数のインデックスでアクセスし，その境界は等比数列となっている．
 以下のように初期化した場合，`[1.0 ~ 100.0)` の範囲を `10` 分割した領域として管理される．
 ```c++
-MD_EXT::logspace_array<int> array;
-array.init(1.0, 100.0, 10);
+MD_EXT::logspace_array<int> ls_array;
+ls_array.init(1.0, 100.0, 10);
 ```
 
 インターフェイスや挙動の詳細は `./unit_test/gtest_logspace_array.cpp` を参照．
@@ -57,9 +57,9 @@ std::vector<> をはじめとする，いくつかのSTLコンテナとその組
 `FilePrinter` : 出力ファイルの管理用クラス．担当する `rank` からの入力のみをファイルに出力する．  
 `file_load(file_name, data_list, rank)` : `file_name` の各行ごとに `std::vector<T>` に読み込んだ `data_list` を作成する．行の読み込みは `void read_line(str)` 関数をデータ型に用意しておく．あるいは `std::vector<std::string>` であれば各行ごとにそのまま格納される．
 
-#### hash_tuple::hash_func
-`std::tuple<>` を `std::unordered_set<>` , `std::unoudered_map<>` のキーとして使用するためのハッシュ関数を提供する．  
-`tuple` の各要素のハッシュの生成には `std::hash<>` を用いる．
+#### hash_tuple::hash_func\<T\>
+`std::tuple<T1,T2,...Tn>` を `std::unordered_set<>` , `std::unoudered_map<>` のキーとして使用するためのハッシュ関数を提供する．  
+`tuple` の各要素のハッシュの生成には `std::hash<T>` を用いる．
 
 #### chrono_str
 `to_str_h_m_s_ms(chrono)` : `std::chrono` の値を [時間]:[分]:[秒].[ミリ秒] 表記の `std::string` に変換する．  
@@ -75,8 +75,8 @@ std::vector<> をはじめとする，いくつかのSTLコンテナとその組
 内部テーブルの範囲，分解能をコンストラクタ引数または `init()` 関数でカスタマイズ可能．
 詳細な挙動は `./unit_test/gtest_blz_dist.cpp` を参照．
 
-#### MD_EXT::CellIndex
-cell index法によるネイバーリスト生成クラス．MPI通信を行わない．  
+#### MD_EXT::CellIndex\<T\>
+cell index法を用いてネイバーリストを作成する．MPI通信を行わない．  
 系の初期化時における分子配置の衝突判定など，シングルプロセスで実行したい処理でネイバーリストが欲しい場合に用いる．  
 詳細な挙動は `./unit_test/gtest_cell_index.cpp` を参照．
 
@@ -84,7 +84,7 @@ cell index法によるネイバーリスト生成クラス．MPI通信を行わ�
 系のサイズ，および正規化空間と実空間の変換関数を提供する．  
 FDPSのParticleMesh拡張を用いる場合，FDPSに与える粒子座標は `[0.0~1.0)` である必要があるが，その他実空間の方が都合がいい処理(分子内力の計算など)を行う前後にこれを用いて位置を変換する．
 
-#### MD_EXT::basic_connect
+#### MD_EXT::basic_connect\<T,S\>
 `MD_EXT::fixed_vector<T,S>` のインターフェイスを原子間結合の取り扱い向けに変更したもの．
 詳細な挙動は `./unit_test/gtest_basic_connect.cpp` を参照．
 

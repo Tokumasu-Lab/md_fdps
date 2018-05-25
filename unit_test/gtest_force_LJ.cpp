@@ -52,14 +52,14 @@ void test_atom_setting(Tptcl &atom){
     //--- set initial position & parameters
     //------ for bond test
     for(PS::S32 i=0; i<TEST_DEFS::n_atom; ++i){
-    atom[i].setAtomID(i);
-    atom[i].setAtomType( AtomName::Ar );
-    atom[i].setMolType(  MolName::AA_Ar );
-    atom[i].setMolID(i);
-    atom[i].setCharge( 0.0 );
-    atom[i].setVDW_R( 0.5*3.81637 );
-    atom[i].setVDW_D( std::sqrt(0.24) );
-    atom[i].clear();
+        atom[i].setAtomID(i);
+        atom[i].setAtomType( AtomName::Ar );
+        atom[i].setMolType(  MolName::AA_Ar );
+        atom[i].setMolID(i);
+        atom[i].setCharge( 0.0 );
+        atom[i].setVDW_R( 0.5*3.81637 );
+        atom[i].setVDW_D( std::sqrt(0.24) );
+        atom[i].clear();
     }
 
     atom[0].setPos( PS::F64vec(0.5) );
@@ -187,16 +187,19 @@ TEST_F(TestForceLJ, force){
     EXPECT_EQ(force_log.size(), force_ref.size());
     const PS::S32 n = std::min(force_log.size(), force_ref.size());
 
-    for(PS::S32 i=0; i<n; ++i){
-        EXPECT_EQ(force_log[i].count, force_ref[i].count) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].pos.x, force_ref[i].pos.x) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].pos.y, force_ref[i].pos.y) << " i= " << i;
-        EXPECT_FLOAT_EQ(force_log[i].pos.z, force_ref[i].pos.z) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(force_log[i].potential, force_ref[i].potential, TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(force_log[i].force.x  , force_ref[i].force.x  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(force_log[i].force.y  , force_ref[i].force.y  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
-        EXPECT_TRUE( float_relative_eq(force_log[i].force.z  , force_ref[i].force.z  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+    if(PS::Comm::getRank() == 0){
+        for(PS::S32 i=0; i<n; ++i){
+            EXPECT_EQ(force_log[i].count, force_ref[i].count) << " i= " << i;
+            EXPECT_FLOAT_EQ(force_log[i].pos.x, force_ref[i].pos.x) << " i= " << i;
+            EXPECT_FLOAT_EQ(force_log[i].pos.y, force_ref[i].pos.y) << " i= " << i;
+            EXPECT_FLOAT_EQ(force_log[i].pos.z, force_ref[i].pos.z) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(force_log[i].potential, force_ref[i].potential, TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(force_log[i].force.x  , force_ref[i].force.x  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(force_log[i].force.y  , force_ref[i].force.y  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+            EXPECT_TRUE( float_relative_eq(force_log[i].force.z  , force_ref[i].force.z  , TEST_DEFS::eps_abs, TEST_DEFS::eps_rel) ) << " i= " << i;
+        }
     }
+    COMM_TOOL::barrier();
 }
 
 

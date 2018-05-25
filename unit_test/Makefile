@@ -37,6 +37,7 @@ GTEST_SRCS += $(REL)/gtest_force_bond.cpp
 GTEST_SRCS += $(REL)/gtest_force_angle.cpp
 GTEST_SRCS += $(REL)/gtest_force_dihedral.cpp
 GTEST_SRCS += $(REL)/gtest_force_improper.cpp
+GTEST_SRCS += $(REL)/gtest_force_mask.cpp
 
 #--- file I/O test
 GTEST_SRCS += $(REL)/gtest_fileIO.cpp

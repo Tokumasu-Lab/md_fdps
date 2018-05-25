@@ -18,60 +18,6 @@
 #include "comm_tool_SerDes.hpp"
 
 
-//--- implementation in "ps_defs.hpp"
-/*
-        ///////////////////////////
-        // MPI GATHER WRAPPER //
-        template<class T> static inline void gather(const T * val_send,
-                                                    const int n,
-                                                    T * val_recv){
-#ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            MPI::COMM_WORLD.Gather(val_send, n, GetDataType<T>(),
-				   val_recv, n, GetDataType<T>(), 0);
-#else
-            for(int i=0; i<n; i++)val_recv[i] = val_send[i];
-#endif
-        }
-
-        template<class T> static inline void gatherV(const T * val_send,
-                                                     const int n_send,
-                                                     T * val_recv){
-#ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            const int n_proc = Comm::getNumberOfProc();
-            int * n_recv      = new int[n_proc];
-            int * n_disp_recv = new int[n_proc+1];
-            gather(&n_send, 1, n_recv);
-            n_disp_recv[0] = 0;
-            for(S32 i=0; i<n_proc; i++){
-                n_disp_recv[i+1] = n_disp_recv[i] + n_recv[i];
-            }
-            MPI::COMM_WORLD.Gatherv(val_send, n_send, GetDataType<T>(),
-                                    val_recv, n_recv, n_disp_recv, GetDataType<T>(), 0);
-            delete[] n_recv;
-            delete[] n_disp_recv;
-#else
-            int n = n_send;
-            for(int i=0; i<n; i++)val_recv[i] = val_send[i];
-#endif
-        }
-
-        template<class T> static inline void gatherV(const T * val_send,
-                                                     const int n_send,
-                                                     T * val_recv,
-                                                     const int * n_recv,
-                                                     const int * n_recv_disp){
-#ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            MPI::COMM_WORLD.Gatherv(val_send, n_send, GetDataType<T>(),
-                                    val_recv, n_recv, n_recv_disp, GetDataType<T>(), 0);
-#else
-            for(int i=0; i<n_send; i++) val_recv[i] = val_send[i];
-            //n_recv[0] = n_recv_disp[1] = n_send; //not needed ?
-            //n_recv_disp[0] = 0; //not needed ?
-#endif
-        }
-*/
-
-
 namespace COMM_TOOL {
 
     //=====================
@@ -87,7 +33,9 @@ namespace COMM_TOOL {
     template <class T>
     void gather(const T              &value,
                       std::vector<T> &recv_vec,
-                const PS::S32         root     ){
+                const PS::S32         root,
+                      MPI_Comm        comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0) std::cout << " *** gather_<T, result>" << std::endl;
         #endif
@@ -96,8 +44,10 @@ namespace COMM_TOOL {
         recv_vec.resize(PS::Comm::getNumberOfProc());
 
         #ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            MPI::COMM_WORLD.Gather(&value,       1, PS::GetDataType<T>(),
-                                   &recv_vec[0], 1, PS::GetDataType<T>(), root);
+            MPI_Gather(&value,       1, PS::GetDataType<T>(),
+                       &recv_vec[0], 1, PS::GetDataType<T>(),
+                        root,
+                        comm);
         #else
             recv_vec.at(0) = value;
         #endif
@@ -112,7 +62,9 @@ namespace COMM_TOOL {
     template <class T>
     void gather(const std::vector<T>              &send_vec,
                       std::vector<std::vector<T>> &recv_vec_vec,
-                const PS::S32                      root         ){
+                const PS::S32                      root,
+                      MPI_Comm                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0) std::cout << " *** gather_<std::vector<T>, result>" << std::endl;
         #endif
@@ -121,7 +73,7 @@ namespace COMM_TOOL {
         std::vector<PS::S32> n_recv_disp;
         std::vector<T>       recv_data;
         PS::S32              len = send_vec.size();
-        gather(len, n_recv, root);
+        gather(len, n_recv, root, comm);
 
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
         n_recv_disp.resize(n_proc+1);
@@ -132,8 +84,10 @@ namespace COMM_TOOL {
         recv_data.resize( n_recv_disp[n_proc] );
 
         #ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            MPI::COMM_WORLD.Gatherv(&send_vec[0],  send_vec.size(),             PS::GetDataType<T>(),
-                                    &recv_data[0], &n_recv[0], &n_recv_disp[0], PS::GetDataType<T>(), root);
+            MPI_Gatherv(&send_vec[0],  send_vec.size(),             PS::GetDataType<T>(),
+                        &recv_data[0], &n_recv[0], &n_recv_disp[0], PS::GetDataType<T>(),
+                         root,
+                         comm);
         #else
             recv_data = send_vec;
             n_recv.clear();
@@ -168,7 +122,9 @@ namespace COMM_TOOL {
     */
     void gather(const std::string              &send_str,
                       std::vector<std::string> &recv_vec_str,
-                const PS::S32                   root         ){
+                const PS::S32                   root,
+                      MPI_Comm                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::string, result>" << std::endl;
         #endif
@@ -179,7 +135,7 @@ namespace COMM_TOOL {
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         serialize_string(send_str, send_vec_char);
-        gather(send_vec_char, recv_vec_vec_char, root);
+        gather(send_vec_char, recv_vec_vec_char, root, comm);
 
         if(PS::Comm::getRank() == root){
             recv_vec_str.resize(n_proc);
@@ -200,7 +156,9 @@ namespace COMM_TOOL {
     */
     void gather(const std::vector<std::string>              &send_vec_str,
                       std::vector<std::vector<std::string>> &recv_vec_vec_str,
-                const PS::S32                                root             ){
+                const PS::S32                                root,
+                      MPI_Comm                               comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::vector<std::string>, result>" << std::endl;
         #endif
@@ -211,7 +169,7 @@ namespace COMM_TOOL {
         const PS::S32 n_proc = PS::Comm::getNumberOfProc();
 
         serialize_vector_string(send_vec_str, send_vec_char);
-        gather(send_vec_char, recv_vec_vec_char, root);
+        gather(send_vec_char, recv_vec_vec_char, root, comm);
 
         if(PS::Comm::getRank() == root){
             recv_vec_vec_str.resize(n_proc);
@@ -236,7 +194,9 @@ namespace COMM_TOOL {
     template <class T>
     void gather(const std::vector<std::vector<T>>              &send_vec_vec,
                       std::vector<std::vector<std::vector<T>>> &recv_vec_vec_vec,
-                const PS::S32                                   root             ){
+                const PS::S32                                   root,
+                      MPI_Comm                                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::vector<std::vector<T>>, result>" << std::endl;
         #endif
@@ -249,8 +209,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<T>>      recv_data;
         std::vector<std::vector<size_t>> recv_index;
-        gather(vec_data , recv_data , root);
-        gather(vec_index, recv_index, root);
+        gather(vec_data , recv_data , root, comm);
+        gather(vec_index, recv_index, root, comm);
 
         if(PS::Comm::getRank() == root){
             recv_vec_vec_vec.resize(PS::Comm::getNumberOfProc());
@@ -274,7 +234,9 @@ namespace COMM_TOOL {
     template <class Ta, class Tb>
     void gather(const std::vector<std::pair<Ta, Tb>>              &send_vec_pair,
                       std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vec_pair,
-                const PS::S32                                      root              ){
+                const PS::S32                                      root,
+                      MPI_Comm                                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** gather_<std::vector<std::pair<Ta, Tb>>, result>" << std::endl;
         #endif
@@ -286,8 +248,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<Ta>> recv_vec_1st;
         std::vector<std::vector<Tb>> recv_vec_2nd;
-        gather(vec_1st, recv_vec_1st, root);
-        gather(vec_2nd, recv_vec_2nd, root);
+        gather(vec_1st, recv_vec_1st, root, comm);
+        gather(vec_2nd, recv_vec_2nd, root, comm);
 
         if(PS::Comm::getRank() == root){
             recv_vec_vec_pair.resize(PS::Comm::getNumberOfProc());
@@ -310,9 +272,11 @@ namespace COMM_TOOL {
     * @detail    size of vector = PS::Comm::getNumberOfProc();
     */
     template <class T>
-    std::vector<T> gather(const T &send_data, const PS::S32 root){
+    std::vector<T> gather(const T       &send_data,
+                          const PS::S32  root,
+                                MPI_Comm comm = MPI_COMM_WORLD){
         std::vector<T> recv_vec;
-        gather(send_data, recv_vec, root);
+        gather(send_data, recv_vec, root, comm);
         return recv_vec;
     }
 

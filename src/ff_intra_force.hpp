@@ -36,28 +36,43 @@ namespace FORCE {
             }
 
             const auto bond_prm = MODEL::coef_table.bond.at(key_bond);
-            switch (bond_prm.form) {
-                case IntraFuncForm::none:
-                    //--- free potential
-                    continue;
-                break;
 
-                case IntraFuncForm::anharmonic:
-                    calcBondForce_anharmonic_IJ(Normalize::realPos(ep_i.getPos()),
-                                                Normalize::realPos((*ptr_j).getPos()),
-                                                bond_prm,
-                                                force_IA);
-                break;
+            try{
+                switch (bond_prm.form) {
+                    case IntraFuncForm::none:
+                        //--- free potential
+                        continue;
+                    break;
 
-                case IntraFuncForm::harmonic:
-                    calcBondForce_harmonic_IJ(Normalize::realPos(ep_i.getPos()),
-                                              Normalize::realPos((*ptr_j).getPos()),
-                                              bond_prm,
-                                              force_IA);
-                break;
+                    case IntraFuncForm::anharmonic:
+                        calcBondForce_anharmonic_IJ(Normalize::realPos(ep_i.getPos()),
+                                                    Normalize::realPos((*ptr_j).getPos()),
+                                                    bond_prm,
+                                                    force_IA);
+                    break;
 
-                default:
-                    throw std::invalid_argument("undefined function form: " + ENUM::what(bond_prm.form) + " at bond force.");
+                    case IntraFuncForm::harmonic:
+                        calcBondForce_harmonic_IJ(Normalize::realPos(ep_i.getPos()),
+                                                  Normalize::realPos((*ptr_j).getPos()),
+                                                  bond_prm,
+                                                  force_IA);
+                    break;
+
+                    default:
+                        throw std::invalid_argument("undefined function form: " + ENUM::what(bond_prm.form) + " at bond force.");
+                }
+            } catch(...) {
+                std::ostringstream oss;
+                oss << "  atom_i: id = " << ep_i.getId()
+                    << ", pos = "        << ep_i.getPos()
+                    << ", MolType = "    << ep_i.getMolType()
+                    << ", AtomType = "   << ep_i.getAtomType() << "\n"
+                    << "  atom_j: id = " << (*ptr_j).getId()
+                    << ", pos = "        << (*ptr_j).getPos()
+                    << ", MolType = "    << (*ptr_j).getMolType()
+                    << ", AtomType = "   << (*ptr_j).getAtomType() << "\n";
+                std::cerr << oss.str() << std::flush;
+                throw;
             }
         }
     }

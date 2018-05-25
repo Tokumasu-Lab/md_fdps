@@ -131,7 +131,7 @@ class ForceInter :
           this->copyForceCoulomb(force);
       }
 
-      //--- clear dinamic data
+      //--- clear
       void clearForceInter(){
           this->clearForceLJ();
           this->clearForceCoulomb();
@@ -162,7 +162,7 @@ class Force_FP :
         this->copyForceIntra(force);
     }
 
-    //--- clear dinamic data
+    //--- clear
     void clear() {
         this->clearForceInter();
         this->clearForceIntra();
@@ -184,10 +184,13 @@ class Atom_FP :
   public:
 
     //--- output interaction result
+    inline PS::F32vec getForceInter() const {
+        return    this->getForceLJ()
+                + this->getFieldCoulomb()*this->getCharge();
+    }
     inline PS::F32vec getForce() const {
         return   this->getForceIntra()
-               + this->getForceLJ()
-               + this->getFieldCoulomb()*this->getCharge();
+               + this->getForceInter();
     }
     inline PS::F32vec getVirial() const {
         const PS::F32 virial_coulomb = 1.0/3.0*this->getPotCoulomb()*this->getCharge();
@@ -286,23 +289,34 @@ class EP_inter :
   public AtomCharge<PS::F32>,
   public AtomVDW   <PS::F32> {
   private:
-    static PS::F32 Rcut;
-    static PS::F32 Rcut_LJ;
-    static PS::F32 Rcut_coulomb;
+    static PS::F32 r_cut_LJ;
+    static PS::F32 r_cut_coulomb;
+
+    static PS::F32 r_margin;
+    static PS::F32 r_search;
+
+    static void update_r_search(){
+        EP_inter::r_search = std::max(EP_inter::r_cut_LJ,
+                                      EP_inter::r_cut_coulomb) + EP_inter::r_margin;
+    }
 
   public:
-    static void setRcut_LJ(const PS::F32 &r){
-        EP_inter::Rcut_LJ = r;
-        EP_inter::Rcut    = std::max(r, EP_inter::Rcut_coulomb);
+    static void setR_cut_LJ(const PS::F32 &r){
+        EP_inter::r_cut_LJ = r;
+        EP_inter::update_r_search();
     }
-    static void setRcut_coulomb(const PS::F32 &r){
-        EP_inter::Rcut_coulomb = r;
-        EP_inter::Rcut         = std::max(r, EP_inter::Rcut_LJ);
+    static void setR_cut_coulomb(const PS::F32 &r){
+        EP_inter::r_cut_coulomb = r;
+        EP_inter::update_r_search();
+    }
+    static void setR_margin(const PS::F32 &r){
+        EP_inter::r_margin = r;
+        EP_inter::update_r_search();
     }
 
-    static PS::F32 getRSearch()      { return EP_inter::Rcut; }
-    static PS::F32 getRcut_LJ()      { return EP_inter::Rcut_LJ; }
-    static PS::F32 getRcut_coulomb() { return EP_inter::Rcut_coulomb; }
+    static PS::F32 getRSearch()      { return EP_inter::r_search; }
+    static PS::F32 getRcut_LJ()      { return EP_inter::r_cut_LJ; }
+    static PS::F32 getRcut_coulomb() { return EP_inter::r_cut_coulomb; }
 
     template <class T>
     void copyFromFP(const T &fp){
@@ -313,9 +327,10 @@ class EP_inter :
         this->copyAtomVDW(fp);
     }
 };
-PS::F32 EP_inter::Rcut         = 0.0;
-PS::F32 EP_inter::Rcut_LJ      = 0.0;
-PS::F32 EP_inter::Rcut_coulomb = 0.0;
+PS::F32 EP_inter::r_cut_LJ      = 0.0;
+PS::F32 EP_inter::r_cut_coulomb = 0.0;
+PS::F32 EP_inter::r_margin      = 0.0;
+PS::F32 EP_inter::r_search      = 0.0;
 
 
 class EP_intra :
@@ -323,11 +338,16 @@ class EP_intra :
   public AtomConnect,
   public AtomPos<PS::F32> {
   private:
-    static PS::F32 Rcut;
+    static PS::F32 r_cut;
+    static PS::F32 r_margin;
 
   public:
-    static void    setRcut(const PS::F32 r) { EP_intra::Rcut = r;    }
-    static PS::F32 getRSearch()             { return EP_intra::Rcut; }
+    static void setR_cut(   const PS::F32 r) { EP_intra::r_cut    = r; }
+    static void setR_margin(const PS::F32 r) { EP_intra::r_margin = r; }
+
+    static PS::F32 getRSearch(){
+        return EP_intra::r_cut + EP_intra::r_margin;
+    }
 
     template <class T>
     void copyFromFP(const T &fp){
@@ -336,4 +356,5 @@ class EP_intra :
         this->copyAtomPos(fp);
     }
 };
-PS::F32 EP_intra::Rcut = 0.0;
+PS::F32 EP_intra::r_cut    = 0.0;
+PS::F32 EP_intra::r_margin = 0.0;

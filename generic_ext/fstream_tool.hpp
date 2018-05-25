@@ -130,7 +130,7 @@ namespace FS_TOOL {
 
         if(PS::Comm::getRank() == rank){
             std::ifstream ifs{file_name};
-            if(ifs.fail()){
+            if(!ifs.is_open()){
                 throw std::ios_base::failure("failed to open the file: " + file_name);
             }
 
@@ -160,7 +160,7 @@ namespace FS_TOOL {
 
         if(PS::Comm::getRank() == rank){
             std::ifstream ifs{file_name};
-            if(ifs.fail()){
+            if(!ifs.is_open()){
                 throw std::ios_base::failure("failed to open the file: " + file_name);
             }
 

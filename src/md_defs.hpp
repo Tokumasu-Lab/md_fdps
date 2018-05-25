@@ -31,6 +31,7 @@ namespace MD_DEFS {
 
     struct IntraMask{
         ID_type id;
+        bool    effective_flag = false;
         PS::F32 scale_LJ;
         PS::F32 scale_coulomb;
 
@@ -38,20 +39,23 @@ namespace MD_DEFS {
         void _assign_impl(const ID_type id,
                           const PS::F32 scale_LJ,
                           const PS::F32 scale_coulomb){
-            this->id            = id;
-            this->scale_LJ      = scale_LJ;
-            this->scale_coulomb = scale_coulomb;
+            this->id             = id;
+            this->effective_flag = true;
+            this->scale_LJ       = scale_LJ;
+            this->scale_coulomb  = scale_coulomb;
         }
         void _assign_impl(const IntraMask &rhs){
             this->_assign_impl(rhs.id,
                                rhs.scale_LJ,
                                rhs.scale_coulomb);
+            this->effective_flag = rhs.is_effective();
         }
 
     public:
         void clear(){
-            this->scale_LJ      = 1.0;
-            this->scale_coulomb = 1.0;
+            this->effective_flag = false;
+            this->scale_LJ       = 1.0;
+            this->scale_coulomb  = 1.0;
         }
         IntraMask(){
             this->id = -1;
@@ -71,10 +75,12 @@ namespace MD_DEFS {
         }
 
         IntraMask& setId(const ID_type id){
-            this->id = id;
+            this->id             = id;
+            this->effective_flag = true;
             return *this;
         }
-        ID_type getId() const { return this->id; }
+        ID_type getId()        const { return this->id;             }
+        bool    is_effective() const { return this->effective_flag; }
     };
     bool operator == (const IntraMask &lhs, const IntraMask &rhs){
         return (lhs.id            == rhs.id &&

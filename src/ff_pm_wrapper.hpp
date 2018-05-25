@@ -352,7 +352,7 @@ namespace FORCE {
     /*
     * @brief wrapper for PS::ParticleMesh.
     * @details provide same interface with CalcForceParticleMesh class.
-    * @details this implementation is raw PS::ParticleMesh. the 'coef_ema' must be 1.0f at PS::DomainInfo::initialize().
+    * @details this implementation is raw PS::ParticleMesh.
     */
     class ParticleMesh {
     private:

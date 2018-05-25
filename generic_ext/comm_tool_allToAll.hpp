@@ -33,7 +33,9 @@ namespace COMM_TOOL {
     */
     template <class T>
     void allToAll(const std::vector<T> &send_vec,
-                        std::vector<T> &recv_vec){
+                        std::vector<T> &recv_vec,
+                        MPI_Comm        comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** alltoall_<std::vector<T>>" << std::endl;
         #endif
@@ -44,8 +46,9 @@ namespace COMM_TOOL {
         recv_vec.resize(n_proc);
 
         #ifdef PARTICLE_SIMULATOR_MPI_PARALLEL
-            MPI::COMM_WORLD.Alltoall(&send_vec[0], 1, PS::GetDataType<T>(),
-                                     &recv_vec[0], 1, PS::GetDataType<T>() );
+            MPI_Alltoall(&send_vec[0], 1, PS::GetDataType<T>(),
+                         &recv_vec[0], 1, PS::GetDataType<T>(),
+                          comm);
         #else
             recv_vec[0] = send_vec[0];
         #endif
@@ -60,7 +63,9 @@ namespace COMM_TOOL {
     */
     template <class T>
     void allToAll(const std::vector<std::vector<T>> &send_vec_vec,
-                        std::vector<std::vector<T>> &recv_vec_vec){
+                        std::vector<std::vector<T>> &recv_vec_vec,
+                        MPI_Comm                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allToAll_<std::vector<std::vector<T>>>" << std::endl;
         #endif
@@ -83,7 +88,7 @@ namespace COMM_TOOL {
             for(PS::S32 i=0; i<n_proc; ++i){
                 n_send[i] = send_vec_vec[i].size();
             }
-            allToAll(n_send, n_recv);
+            allToAll(n_send, n_recv, comm);
 
             n_recv_disp[0] = 0;
             for(PS::S32 i=0; i<n_proc; ++i){
@@ -96,8 +101,9 @@ namespace COMM_TOOL {
             serialize_vector_vector(send_vec_vec, send_data, n_send_disp);
             recv_data.resize(n_recv_disp.back());
 
-            MPI::COMM_WORLD.Alltoallv(&send_data[0], &n_send[0], &n_send_disp[0], PS::GetDataType<T>(),
-                                      &recv_data[0], &n_recv[0], &n_recv_disp[0], PS::GetDataType<T>() );
+            MPI_Alltoallv(&send_data[0], &n_send[0], &n_send_disp[0], PS::GetDataType<T>(),
+                          &recv_data[0], &n_recv[0], &n_recv_disp[0], PS::GetDataType<T>(),
+                           comm);
 
             deserialize_vector_vector(recv_data, n_recv_disp, recv_vec_vec);
         #else
@@ -114,7 +120,9 @@ namespace COMM_TOOL {
     * @details    send/recv_vec[i] is send/recieve data to/from process i.
     */
     void allToAll(const std::vector<std::string> &send_vec_str,
-                        std::vector<std::string> &recv_vec_str){
+                        std::vector<std::string> &recv_vec_str,
+                        MPI_Comm                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allToAll_<std::vector<std::string>>>" << std::endl;
         #endif
@@ -130,7 +138,7 @@ namespace COMM_TOOL {
             serialize_string(send_vec_str[i], send_vec_vec_char[i]);
         }
 
-        allToAll(send_vec_vec_char, recv_vec_vec_char);
+        allToAll(send_vec_vec_char, recv_vec_vec_char, comm);
 
         recv_vec_str.resize(n_proc);
         for(PS::S32 i=0; i<n_proc; ++i){
@@ -147,7 +155,9 @@ namespace COMM_TOOL {
     * @details    send/recv_vec[i] is send/recieve data to/from process i.
     */
     void allToAll(const std::vector<std::vector<std::string>> &send_vec_vec_str,
-                        std::vector<std::vector<std::string>> &recv_vec_vec_str){
+                        std::vector<std::vector<std::string>> &recv_vec_vec_str,
+                        MPI_Comm                               comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allToAll_<std::vector<std::string>>" << std::endl;
         #endif
@@ -163,7 +173,7 @@ namespace COMM_TOOL {
             serialize_vector_string(send_vec_vec_str[i], send_vec_vec_char[i]);
         }
 
-        allToAll(send_vec_vec_char, recv_vec_vec_char);
+        allToAll(send_vec_vec_char, recv_vec_vec_char, comm);
 
         recv_vec_vec_str.resize(n_proc);
         for(PS::S32 i=0; i<n_proc; ++i){
@@ -183,7 +193,9 @@ namespace COMM_TOOL {
     */
     template <class T>
     void allToAll(const std::vector<std::vector<std::vector<T>>> &send_vec_vv,
-                        std::vector<std::vector<std::vector<T>>> &recv_vec_vv){
+                        std::vector<std::vector<std::vector<T>>> &recv_vec_vv,
+                        MPI_Comm                                  comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allToAll_<std::vector<std::vector<std::vector<T>>>>" << std::endl;
         #endif
@@ -204,8 +216,8 @@ namespace COMM_TOOL {
         std::vector<std::vector<T>>      recv_data;
         std::vector<std::vector<size_t>> recv_index;
 
-        allToAll(send_data,  recv_data);
-        allToAll(send_index, recv_index);
+        allToAll(send_data,  recv_data , comm);
+        allToAll(send_index, recv_index, comm);
 
         recv_vec_vv.resize(n_proc);
         for(PS::S32 i=0; i<n_proc; ++i){
@@ -225,7 +237,9 @@ namespace COMM_TOOL {
     */
     template <class Ta, class Tb>
     void allToAll(const std::vector<std::vector<std::pair<Ta, Tb>>> &send_vec_vp,
-                        std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vp ){
+                        std::vector<std::vector<std::pair<Ta, Tb>>> &recv_vec_vp,
+                        MPI_Comm                                     comm = MPI_COMM_WORLD){
+
         #ifdef DEBUG_COMM_TOOL
             if(PS::Comm::getRank() == 0 )  std::cout << " *** allToAll_<std::vector<std::pair<Ta, Tb>>>" << std::endl;
         #endif
@@ -245,8 +259,8 @@ namespace COMM_TOOL {
 
         std::vector<std::vector<Ta>> recv_vec_1st;
         std::vector<std::vector<Tb>> recv_vec_2nd;
-        allToAll(send_vec_1st, recv_vec_1st);
-        allToAll(send_vec_2nd, recv_vec_2nd);
+        allToAll(send_vec_1st, recv_vec_1st, comm);
+        allToAll(send_vec_2nd, recv_vec_2nd, comm);
 
         recv_vec_vp.resize(n_proc);
         for(PS::S32 i=0; i<n_proc; ++i){
@@ -265,9 +279,11 @@ namespace COMM_TOOL {
     * @details   send/recv_vec[i] is send/recieve data to/from process i.
     */
     template <class T>
-    std::vector<T> allToAll(const std::vector<T> &send_vec){
+    std::vector<T> allToAll(const std::vector<T> &send_vec,
+                                  MPI_Comm        comm = MPI_COMM_WORLD){
+
         std::vector<T> recv_vec;
-        allToAll(send_vec, recv_vec);
+        allToAll(send_vec, recv_vec, comm);
         return recv_vec;
     }
 
